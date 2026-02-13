@@ -72,8 +72,8 @@ export function UserNav() {
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-950/50">
-          <Avatar className="h-8 w-8 border-2 border-purple-200 dark:border-purple-800">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
             <AvatarImage 
               src={session?.user?.image || ''} 
               alt={session?.user?.name || 'User'} 
@@ -84,48 +84,48 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 border-purple-200/50 dark:border-purple-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none text-purple-700 dark:text-purple-300">{session?.user?.name || 'User'}</p>
+            <p className="text-sm font-medium leading-none">{session?.user?.name || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {session?.user?.email || ''}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-purple-200/50 dark:bg-purple-800/50" />
+        <DropdownMenuSeparator />
         <DropdownMenuGroup>
             {teamIdToUse && (
               <>
-                <DropdownMenuItem onClick={() => router.push('/team-selection')} className="hover:bg-purple-50 dark:hover:bg-purple-950/50">
-                  <ArrowLeftRight className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <DropdownMenuItem onClick={() => router.push('/team-selection')}>
+                  <ArrowLeftRight className="mr-2 h-4 w-4" />
                   <span>Switch Team</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => {
                   e.preventDefault();
                   setIsTeamMembersOpen(true);
-                }} className="hover:bg-purple-50 dark:hover:bg-purple-950/50">
-                  <Users className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                }}>
+                  <Users className="mr-2 h-4 w-4" />
                   <span>Manage Team</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/${teamIdToUse}/settings`} className="hover:bg-purple-50 dark:hover:bg-purple-950/50">
-                    <Settings className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Link href={`/${teamIdToUse}/settings`}>
+                    <Settings className="mr-2 h-4 w-4" />
                     <span>Team Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-purple-200/50 dark:bg-purple-800/50" />
+                <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem asChild>
-              <Link href="/settings" className="hover:bg-indigo-50 dark:hover:bg-indigo-950/50">
-                <User className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <Link href="/settings">
+                <User className="mr-2 h-4 w-4" />
                 <span>Profile Settings</span>
               </Link>
             </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator className="bg-purple-200/50 dark:bg-purple-800/50" />
-        <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-50 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400">
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
