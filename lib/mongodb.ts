@@ -1,46 +1,75 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {};
+const options = {
+  maxPoolSize: 50,
+  minPoolSize: 5,
+  maxIdleTimeMS: 30000,
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
+  retryWrites: true,
+  retryReads: true,
+  writeConcern: { w: 'majority' as const, j: true },
+  readConcern: { level: 'majority' as const },
+  compressors: ['zlib'] as ('zlib' | 'none' | 'snappy' | 'zstd')[],
+};
 
-let client;
+let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-if (process.env.NODE_ENV === 'development') {
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
+let globalWithMongo = global as typeof globalThis & {
+  _mongoClientPromise?: Promise<MongoClient>;
+  _mongoClient?: MongoClient;
+};
 
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
-  }
+if (!globalWithMongo._mongoClientPromise) {
+  client = new MongoClient(uri, options);
+  globalWithMongo._mongoClient = client;
+  globalWithMongo._mongoClientPromise = client.connect();
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  client = globalWithMongo._mongoClient!;
+  clientPromise = globalWithMongo._mongoClientPromise;
+}
+
+clientPromise
+  .then(() => {
+    // MongoDB connected
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    globalWithMongo._mongoClientPromise = undefined;
+  });
+
+export async function getMongoClient(): Promise<MongoClient> {
+  try {
+    return await clientPromise;
+  } catch (error) {
+    console.error("Failed to get MongoDB client:", error);
+    globalWithMongo._mongoClientPromise = undefined;
+    const newClient = new MongoClient(uri, options);
+    globalWithMongo._mongoClient = newClient;
+    globalWithMongo._mongoClientPromise = newClient.connect();
+    return await globalWithMongo._mongoClientPromise;
+  }
 }
 
 export async function connectToDatabase() {
   try {
     if (!process.env.MONGODB_URI) {
-      console.error('Missing MONGODB_URI environment variable');
       throw new Error('Missing MONGODB_URI environment variable');
     }
     
     if (!process.env.MONGODB_DB) {
-      console.error('Missing MONGODB_DB environment variable');
       throw new Error('Missing MONGODB_DB environment variable');
     }
     
-    console.log('Attempting to connect to MongoDB...');
     const client = await clientPromise;
-    console.log('MongoDB connection successful');
-    
     const db = client.db(process.env.MONGODB_DB);
     return { db, client };
   } catch (error) {
