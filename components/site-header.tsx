@@ -28,7 +28,7 @@ export function SiteHeader() {
     <header className="fixed top-4 left-4 right-4 z-50 border bg-background/95 backdrop-blur rounded-xl shadow-lg">
       <div className="flex h-14 items-center px-4">
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
               {mounted ? (
                 <Image 
@@ -45,11 +45,11 @@ export function SiteHeader() {
             </Link>
           </div>
           
-          <div className="flex items-center justify-center flex-1 mx-6">
+          <div className="flex items-center justify-center flex-1 sm:mx-6">
             <MainNav />
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             <AppSwitcher />
             <ThemeToggle />
             <UserNav />

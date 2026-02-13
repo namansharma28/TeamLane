@@ -138,8 +138,8 @@ export default function LandingPage() {
               <AppSwitcher />
               <ThemeToggle />
               <Button onClick={handleGetStarted}>
-                {isAuthenticated ? 'Go to Teams' : 'Get Started'}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <span className="hidden sm:inline">{isAuthenticated ? 'Go to Teams' : 'Get Started'}</span>
+                <ArrowRight className="h-4 w-4 sm:ml-2" />
               </Button>
               <Button 
                 variant="ghost" 
