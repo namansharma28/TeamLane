@@ -88,7 +88,7 @@ export default function LandingPage() {
     if (isAuthenticated) {
       router.push('/team-selection');
     } else {
-      router.push('/register');
+      router.push('/auth/signup');
     }
   };
 
@@ -127,7 +127,7 @@ export default function LandingPage() {
                   </Button>
                 </>
               ) : (
-                <Link href="/login" className="transition-colors hover:text-primary">
+                <Link href="/auth/signin" className="transition-colors hover:text-primary">
                   Login
                 </Link>
               )}
@@ -172,7 +172,7 @@ export default function LandingPage() {
                   </div>
                 </>
               ) : (
-                <Link href="/login" className="block px-2 py-1 hover:bg-accent rounded-md">
+                <Link href="/auth/signin" className="block px-2 py-1 hover:bg-accent rounded-md">
                   Login
                 </Link>
               )}
