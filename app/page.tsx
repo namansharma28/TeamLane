@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { ArrowRight, CheckCircle, LayoutDashboard, MessageSquare, FileText, Users, Settings, BarChart3 } from "lucide-react";
+import { AppSwitcher } from "@/components/app-switcher";
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
@@ -134,6 +135,7 @@ export default function LandingPage() {
             </nav>
             
             <div className="flex items-center gap-2">
+              <AppSwitcher />
               <ThemeToggle />
               <Button onClick={handleGetStarted}>
                 {isAuthenticated ? 'Go to Teams' : 'Get Started'}
