@@ -85,21 +85,15 @@ export function JoinTeamDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] border-purple-200/50 dark:border-purple-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-              <UserPlus className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Join Team
-              </DialogTitle>
-              <DialogDescription>
-                Enter the team code to join an existing workspace
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Join Team
+          </DialogTitle>
+          <DialogDescription>
+            Enter the team code to join an existing workspace
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -117,7 +111,7 @@ export function JoinTeamDialog({
                       value={field.value.toUpperCase()}
                       onChange={e => field.onChange(e.target.value.toUpperCase())}
                       maxLength={6}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:ring-purple-500 text-center text-lg font-mono tracking-widest"
+                      className="text-center text-lg font-mono tracking-widest"
                     />
                   </FormControl>
                   <FormMessage />
@@ -137,7 +131,6 @@ export function JoinTeamDialog({
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {isLoading ? (
                   <>

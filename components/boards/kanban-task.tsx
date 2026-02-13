@@ -60,16 +60,18 @@ export function KanbanTask({
       style={style}
       {...attributes}
       {...listeners}
-      className={`${isFocused ? 'ring-2 ring-primary' : ''} cursor-grab active:cursor-grabbing`}
+      className={`${isFocused ? 'ring-2 ring-primary' : ''} cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow`}
     >
       <CardHeader className="p-4">
         <CardTitle className="text-sm font-medium">{task.title}</CardTitle>
-        <div className="text-xs text-muted-foreground">{task.description}</div>
+        {task.description && (
+          <div className="text-xs text-muted-foreground mt-1">{task.description}</div>
+        )}
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className="flex flex-wrap justify-between items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           {task.priority && (
-            <Badge variant="outline" className="mr-2 mb-2">
+            <Badge variant="outline" className="text-xs">
               <div
                 className={`w-2 h-2 rounded-full mr-1 ${
                   priorityColors[task.priority as keyof typeof priorityColors]
@@ -80,24 +82,24 @@ export function KanbanTask({
           )}
           
           {formattedDate && (
-            <div className="flex items-center text-xs mb-2">
+            <div className="flex items-center text-xs text-muted-foreground">
               <CalendarIcon className="h-3 w-3 mr-1" />
               {formattedDate}
             </div>
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 flex justify-between">
+      <CardFooter className="p-4 pt-0 flex justify-between items-center">
         {task.assignee ? (
           <Avatar className="h-6 w-6">
             <AvatarImage src={task.assignee.avatar} />
-            <AvatarFallback>{task.assignee.initials}</AvatarFallback>
+            <AvatarFallback className="text-xs">{task.assignee.initials}</AvatarFallback>
           </Avatar>
         ) : (
           <div className="h-6 w-6"></div>  
         )}
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {isAdmin && (
             <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7">
               <Trash className="h-3 w-3" />

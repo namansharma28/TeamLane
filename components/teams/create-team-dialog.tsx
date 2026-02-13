@@ -89,21 +89,15 @@ export function CreateTeamDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] border-purple-200/50 dark:border-purple-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Create New Team
-              </DialogTitle>
-              <DialogDescription>
-                Create a new team workspace for collaboration
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Create New Team
+          </DialogTitle>
+          <DialogDescription>
+            Create a new team workspace for collaboration
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -159,7 +153,6 @@ export function CreateTeamDialog({
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {isLoading ? (
                   <>

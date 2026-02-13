@@ -48,7 +48,7 @@ export function UserNav() {
       // Sign out from NextAuth with redirect
       await signOut({ 
         redirect: true,
-        callbackUrl: "/home"
+        callbackUrl: "/"
       });
     } catch (error) {
       console.error("Logout error:", error);
@@ -78,7 +78,7 @@ export function UserNav() {
               src={session?.user?.image || ''} 
               alt={session?.user?.name || 'User'} 
             />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white font-semibold">
+            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>

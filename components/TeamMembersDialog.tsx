@@ -29,7 +29,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loading } from "./ui/loading";
-import { motion } from "framer-motion";
 
 interface TeamMember {
   userId?: string;
@@ -217,25 +216,19 @@ export function TeamMembersDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl border-purple-200/50 dark:border-purple-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  Team Members
-                </DialogTitle>
-                <DialogDescription>
-                  Manage your team members and invitations
-                </DialogDescription>
-              </div>
-            </div>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Users className="h-5 w-5 text-primary" />
+              Team Members
+            </DialogTitle>
+            <DialogDescription>
+              Manage your team members and invitations
+            </DialogDescription>
           </DialogHeader>
 
           {isAdmin && (
-            <div className="space-y-6 py-4 border-b border-purple-200/50 dark:border-purple-800/50">
+            <div className="space-y-6 py-4 border-b">
               <div className="space-y-3">
                 <Label htmlFor="teamCode" className="text-sm font-medium">Team Join Code</Label>
                 <div className="flex items-center space-x-3">
@@ -243,14 +236,13 @@ export function TeamMembersDialog({
                     id="teamCode"
                     value={joinCode}
                     readOnly
-                    className="flex-1 font-mono text-center text-lg tracking-widest border-purple-200/50 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/20"
+                    className="flex-1 font-mono text-center text-lg tracking-widest bg-muted"
                   />
                   <Button 
                     type="button" 
                     size="icon" 
                     variant="outline" 
                     onClick={handleCopyCode}
-                    className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -269,13 +261,12 @@ export function TeamMembersDialog({
                     placeholder="colleague@example.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1 border-purple-200/50 dark:border-purple-800/50 focus:ring-purple-500"
+                    className="flex-1"
                   />
                   <Button 
                     type="button" 
                     size="icon" 
                     onClick={handleInvite}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
                   >
                     <UserPlus className="h-4 w-4" />
                   </Button>
@@ -297,27 +288,24 @@ export function TeamMembersDialog({
                   <div>
                     <div className="flex items-center gap-2 mb-4">
                       <Crown className="h-4 w-4 text-yellow-600" />
-                      <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                      <h3 className="text-sm font-semibold">
                         Administrators ({adminMembers.length})
                       </h3>
                     </div>
                     <div className="space-y-3">
-                      {adminMembers.map((member, index) => (
-                        <motion.div
+                      {adminMembers.map((member) => (
+                        <div
                           key={member.email}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="flex items-center justify-between p-3 rounded-lg border border-purple-200/50 dark:border-purple-800/50 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-950/20 dark:to-indigo-950/20"
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
                         >
                           <div className="flex items-center space-x-3">
                             <div className="relative">
-                              <Avatar className="h-10 w-10 border-2 border-purple-200 dark:border-purple-800">
-                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white font-semibold">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                                   {getInitials(member.name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                              <div className="absolute -top-1 -right-1 h-5 w-5 bg-yellow-500 rounded-full flex items-center justify-center">
                                 <Crown className="h-2.5 w-2.5 text-white" />
                               </div>
                             </div>
@@ -338,12 +326,12 @@ export function TeamMembersDialog({
                               variant="ghost"
                               size="icon"
                               onClick={() => handleRemoveMember(member.email)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <UserMinus className="h-4 w-4" />
                             </Button>
                           )}
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -353,23 +341,20 @@ export function TeamMembersDialog({
                 {regularMembers.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <Users className="h-4 w-4 text-indigo-600" />
-                      <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                      <Users className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold">
                         Members ({regularMembers.length})
                       </h3>
                     </div>
                     <div className="space-y-3">
-                      {regularMembers.map((member, index) => (
-                        <motion.div
+                      {regularMembers.map((member) => (
+                        <div
                           key={member.email}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: (adminMembers.length + index) * 0.1 }}
-                          className="flex items-center justify-between p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20"
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
                         >
                           <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10 border-2 border-indigo-200 dark:border-indigo-800">
-                              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-semibold">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                                 {getInitials(member.name)}
                               </AvatarFallback>
                             </Avatar>
@@ -390,12 +375,12 @@ export function TeamMembersDialog({
                               variant="ghost"
                               size="icon"
                               onClick={() => handleRemoveMember(member.email)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <UserMinus className="h-4 w-4" />
                             </Button>
                           )}
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -404,12 +389,12 @@ export function TeamMembersDialog({
             )}
           </div>
 
-          <DialogFooter className="flex justify-between items-center border-t border-purple-200/50 dark:border-purple-800/50 pt-4">
+          <DialogFooter className="flex justify-between items-center border-t pt-4">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setLeaveConfirmOpen(true)}
-              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50"
+              className="text-destructive hover:bg-destructive/10"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Leave Team
@@ -417,7 +402,6 @@ export function TeamMembersDialog({
             <Button 
               type="button" 
               onClick={() => onOpenChange(false)}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
             >
               Close
             </Button>
@@ -426,9 +410,9 @@ export function TeamMembersDialog({
       </Dialog>
 
       <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
-        <AlertDialogContent className="border-red-200/50 dark:border-red-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600 dark:text-red-400">
+            <AlertDialogTitle className="text-destructive">
               Are you sure you want to leave this team?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -436,12 +420,12 @@ export function TeamMembersDialog({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50">
+            <AlertDialogCancel>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleLeaveTeam} 
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Leave Team

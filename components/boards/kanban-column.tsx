@@ -34,15 +34,15 @@ export function KanbanColumn({
   return (
     <div 
       ref={setNodeRef}
-      className={`flex-1 min-w-[300px] bg-muted rounded-lg p-4 ${isFocused ? 'ring-2 ring-primary' : ''}`}
+      className={`flex-1 min-w-[300px] bg-muted/50 rounded-lg p-4 ${isFocused ? 'ring-2 ring-primary' : ''}`}
       onClick={onFocus}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm">{title}</h3>
-        <div className="text-muted-foreground text-sm">{tasks.length}</div>
+        <span className="text-xs text-muted-foreground">{tasks.length}</span>
       </div>
       
-      <ScrollArea className="h-[calc(100vh-16rem)]">
+      <ScrollArea className="h-[calc(100vh-16rem)] custom-scrollbar">
         <div className="space-y-2 pr-2">
           {tasks.length === 0 ? (
             <div className="h-20 border border-dashed rounded-md flex items-center justify-center">

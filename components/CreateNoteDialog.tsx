@@ -45,23 +45,17 @@ export function CreateNoteDialog({ teamId, onNoteCreated }: CreateNoteDialogProp
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           New Note
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] border-purple-200/50 dark:border-purple-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Create New Note
-              </DialogTitle>
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Create New Note
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -70,7 +64,6 @@ export function CreateNoteDialog({ teamId, onNoteCreated }: CreateNoteDialogProp
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="border-purple-200/50 dark:border-purple-800/50 focus:ring-purple-500"
             />
           </div>
           <div>
@@ -80,7 +73,6 @@ export function CreateNoteDialog({ teamId, onNoteCreated }: CreateNoteDialogProp
               onChange={(e) => setContent(e.target.value)}
               required
               rows={8}
-              className="border-purple-200/50 dark:border-purple-800/50 focus:ring-purple-500"
             />
           </div>
           <div className="flex gap-3 justify-end">
@@ -88,14 +80,12 @@ export function CreateNoteDialog({ teamId, onNoteCreated }: CreateNoteDialogProp
               type="button" 
               variant="outline" 
               onClick={() => setIsOpen(false)}
-              className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading || !title.trim() || !content.trim()}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {isLoading ? (
                 <>

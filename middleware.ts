@@ -24,12 +24,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle root path
+  // Handle root path - allow access to landing page
   if (pathname === '/') {
-    if (isAuth) {
-      return NextResponse.redirect(new URL('/team-selection', request.url));
-    }
-    return NextResponse.redirect(new URL('/home', request.url));
+    return NextResponse.next();
   }
 
   // Handle auth pages (login/register)
@@ -41,8 +38,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Handle protected routes
-  if (!isAuth && !pathname.startsWith('/home')) {
-    return NextResponse.redirect(new URL('/home', request.url));
+  if (!isAuth) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

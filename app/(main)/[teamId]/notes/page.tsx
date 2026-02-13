@@ -8,9 +8,7 @@ import { CreateNoteDialog } from "@/components/CreateNoteDialog";
 import { NoteModal } from "@/components/NoteModal";
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingPage } from '@/components/ui/loading-page';
-import { motion } from "framer-motion";
-import { FileText, Plus, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, Search } from "lucide-react";
 
 interface Note {
   _id: string;
@@ -115,24 +113,19 @@ export default function NotesPage() {
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
-    <div className="flex flex-col space-y-8 bg-gradient-to-br from-purple-50/30 via-transparent to-indigo-50/30 dark:from-purple-950/20 dark:via-transparent dark:to-indigo-950/20 min-h-screen">
-      {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="flex flex-col space-y-4"
-      >
+    <div className="flex flex-col space-y-6 min-h-screen p-6 pt-0">
+      {/* Header Card */}
+      <div className="bg-background rounded-xl shadow-lg border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-white" />
+            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight">
                 Team Notes
               </h1>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground">
                 Collaborate on shared notes and documentation
               </p>
             </div>
@@ -141,87 +134,73 @@ export default function NotesPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="relative max-w-md">
+        <div className="relative max-w-md mt-4">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <input
             type="search"
             placeholder="Search notes..."
-            className="w-full rounded-xl border border-purple-200/50 dark:border-purple-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm py-3 pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 transition-all duration-300"
+            className="w-full rounded-lg border bg-background py-2 pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </motion.div>
+      </div>
 
       {/* Notes Grid */}
       {filteredNotes.length > 0 ? (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {filteredNotes.map((note, index) => (
-            <motion.div
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredNotes.map((note) => (
+            <Card 
               key={note._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              className="hover:shadow-xl transition-shadow cursor-pointer h-[280px] flex flex-col group"
+              onClick={() => setSelectedNote(note)}
             >
-              <Card 
-                className="hover:shadow-xl transition-all duration-300 cursor-pointer h-[280px] flex flex-col hover:border-purple-300 dark:hover:border-purple-700 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50 group hover:-translate-y-1"
-                onClick={() => setSelectedNote(note)}
-              >
-                <CardHeader className="flex-none pb-3">
-                  <div className="flex justify-between items-start gap-3">
-                    <h3 className="text-lg font-semibold truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                      {note.title}
-                    </h3>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className="text-xs text-muted-foreground bg-purple-50 dark:bg-purple-950/50 px-2 py-1 rounded-full">
-                        {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
+              <CardHeader className="flex-none pb-3">
+                <div className="flex justify-between items-start gap-3">
+                  <h3 className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
+                    {note.title}
+                  </h3>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    By {note.createdBy.name || note.createdBy.email}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  By {note.createdBy.name || note.createdBy.email}
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden">
+                <div className="relative h-full">
+                  <p className="text-muted-foreground line-clamp-6 leading-relaxed">
+                    {note.content}
                   </p>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <div className="relative h-full">
-                    <p className="text-muted-foreground line-clamp-6 leading-relaxed">
-                      {note.content}
-                    </p>
-                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-slate-950 to-transparent pointer-events-none"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </motion.div>
+        </div>
       ) : (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col items-center justify-center py-16 text-center"
-        >
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/50 dark:to-indigo-900/50 flex items-center justify-center mb-6">
-            <FileText className="h-12 w-12 text-purple-500" />
+        <div className="bg-background rounded-xl shadow-lg border p-16">
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+              <FileText className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchTerm ? 'No notes found' : 'No notes yet'}
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              {searchTerm 
+                ? 'Try adjusting your search criteria'
+                : 'Create your first note to start documenting and sharing knowledge with your team'
+              }
+            </p>
+            {!searchTerm && (
+              <CreateNoteDialog teamId={teamId} onNoteCreated={fetchNotes} />
+            )}
           </div>
-          <h3 className="text-xl font-semibold mb-2 text-purple-700 dark:text-purple-300">
-            {searchTerm ? 'No notes found' : 'No notes yet'}
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-md">
-            {searchTerm 
-              ? 'Try adjusting your search criteria'
-              : 'Create your first note to start documenting and sharing knowledge with your team'
-            }
-          </p>
-          {!searchTerm && (
-            <CreateNoteDialog teamId={teamId} onNoteCreated={fetchNotes} />
-          )}
-        </motion.div>
+        </div>
       )}
 
       <NoteModal 

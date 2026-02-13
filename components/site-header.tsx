@@ -4,44 +4,54 @@ import Link from "next/link";
 import { MainNav } from "@/components/main-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/user-nav";
-import { useRouter, useParams } from "next/navigation";
-import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export function SiteHeader() {
-  const router = useRouter();
-  const params = useParams() || {};
-  const teamId = params.teamId as string;
-  const { theme } = useTheme();
+  const { theme, systemTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Determine the actual theme being used
+  const currentTheme = theme === "system" ? systemTheme : theme;
+  const logoSrc = mounted && currentTheme === "dark" 
+    ? "/teamlane.svg" 
+    : "/teamlane_light_mode.svg";
   
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-purple-200/50 dark:border-purple-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-        <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="relative">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                <ImageWithFallback 
-                  src="/teamlane.svg" 
-                  fallbackSrc="/teamlane.png" 
+    <header className="fixed top-4 left-4 right-4 z-50 border bg-background/95 backdrop-blur rounded-xl shadow-lg">
+      <div className="flex h-14 items-center px-4">
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
+              {mounted ? (
+                <Image 
+                  src={logoSrc}
                   alt="TeamLane Logo" 
-                  className="h-5 w-auto"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
                 />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-20 rounded-full blur-xl transition-opacity"></div>
-            </div>
-            <span className="hidden font-bold sm:inline-block bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              TeamLane
-            </span>
-          </Link>
-          <MainNav />
-        </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
+              ) : (
+                <div className="h-8 w-8 bg-muted rounded-md animate-pulse" />
+              )}
+              <span className="hidden font-bold md:inline-block">TeamLane</span>
+            </Link>
+          </div>
+          
+          <div className="flex items-center justify-center flex-1 mx-6">
+            <MainNav />
+          </div>
+          
+          <div className="flex items-center gap-1">
             <ThemeToggle />
             <UserNav />
-          </nav>
+          </div>
         </div>
       </div>
     </header>

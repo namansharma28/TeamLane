@@ -64,12 +64,12 @@ export function TeamBreadcrumb() {
   const currentSection = getCurrentSection();
   
   return (
-    <div className="px-4 py-3 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-purple-200/50 dark:border-purple-800/50">
+    <div className="mx-4 mb-4 px-6 py-4 bg-background rounded-xl shadow-lg border">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/team-selection" className="flex items-center gap-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors">
+              <Link href="/team-selection" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
                 <Home className="h-4 w-4" />
                 <span className="sr-only">Teams</span>
               </Link>
@@ -77,12 +77,12 @@ export function TeamBreadcrumb() {
           </BreadcrumbItem>
           
           <BreadcrumbSeparator>
-            <ChevronRight className="h-4 w-4 text-purple-400 dark:text-purple-600" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </BreadcrumbSeparator>
           
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href={`/${teamId}/dashboard`} className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors">
+              <Link href={`/${teamId}/dashboard`} className="text-foreground hover:text-primary transition-colors">
                 {isLoading ? "Loading..." : teamInfo?.name || `Team ${teamId.substring(0, 6)}...`}
               </Link>
             </BreadcrumbLink>
@@ -91,10 +91,10 @@ export function TeamBreadcrumb() {
           {currentSection && (
             <>
               <BreadcrumbSeparator>
-                <ChevronRight className="h-4 w-4 text-purple-400 dark:text-purple-600" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </BreadcrumbSeparator>
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-indigo-600 dark:text-indigo-400 font-medium">
+                <BreadcrumbPage className="text-foreground font-medium">
                   {currentSection}
                 </BreadcrumbPage>
               </BreadcrumbItem>

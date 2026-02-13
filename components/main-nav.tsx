@@ -97,7 +97,7 @@ export function MainNav() {
             <Icon className="mr-2 h-4 w-4" />
             <span className="hidden md:inline-block">{item.title}</span>
             {isActive && (
-              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"></div>
             )}
           </Link>
         );
