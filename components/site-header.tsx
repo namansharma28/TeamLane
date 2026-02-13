@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MainNav } from "@/components/main-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/user-nav";
+import { AppSwitcher } from "@/components/app-switcher";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -49,6 +50,7 @@ export function SiteHeader() {
           </div>
           
           <div className="flex items-center gap-1">
+            <AppSwitcher />
             <ThemeToggle />
             <UserNav />
           </div>
