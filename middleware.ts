@@ -29,17 +29,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle auth pages (login/register)
-  if (pathname === '/login' || pathname === '/register') {
-    if (isAuth) {
+  // Handle auth routes - allow unauthenticated access
+  if (pathname.startsWith('/auth')) {
+    // If already authenticated and trying to access signin/signup, redirect to team selection
+    if (isAuth && (pathname === '/auth/signin' || pathname === '/auth/signup')) {
       return NextResponse.redirect(new URL('/team-selection', request.url));
     }
     return NextResponse.next();
   }
 
+  // Handle old auth routes - redirect to new ones
+  if (pathname === '/login') {
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
+  }
+  if (pathname === '/register') {
+    return NextResponse.redirect(new URL('/auth/signup', request.url));
+  }
+
+  // Handle legal pages - allow unauthenticated access
+  if (pathname.startsWith('/legal') || pathname.startsWith('/terms') || pathname.startsWith('/privacy')) {
+    return NextResponse.next();
+  }
+
   // Handle protected routes
   if (!isAuth) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
   }
 
   return NextResponse.next();
