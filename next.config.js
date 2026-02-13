@@ -13,6 +13,8 @@ const nextConfig = {
   images: {
     domains: ['github.com', 'localhost'],
   },
+  // Add empty turbopack config to silence the warning
+  turbopack: {},
   webpack: (config) => {
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
