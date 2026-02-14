@@ -15,14 +15,14 @@ function verifySyncRequest(request: Request): boolean {
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { teamId: string } }
+  context: { params: Promise<{ teamId: string }> }
 ) {
   try {
     if (!verifySyncRequest(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await context.params;
 
     if (!ObjectId.isValid(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
