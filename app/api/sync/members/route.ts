@@ -42,31 +42,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    let updateOperation;
-
     switch (action) {
       case 'add':
         // Add new member
-        updateOperation = {
-          $addToSet: {
-            members: {
-              email,
-              role: role || 'member',
-              joinedAt: new Date().toISOString()
-            }
-          },
-          $set: { updatedAt: new Date().toISOString() }
-        };
+        await db.collection("teams").updateOne(
+          { _id: new ObjectId(teamId) },
+          {
+            $addToSet: {
+              members: {
+                email,
+                role: role || 'member',
+                joinedAt: new Date().toISOString()
+              }
+            },
+            $set: { updatedAt: new Date().toISOString() }
+          }
+        );
         break;
 
       case 'remove':
         // Remove member
-        updateOperation = {
-          $pull: {
-            members: { email }
-          },
-          $set: { updatedAt: new Date().toISOString() }
-        };
+        await db.collection("teams").updateOne(
+          { _id: new ObjectId(teamId) },
+          {
+            $pull: {
+              members: { email } as any
+            },
+            $set: { updatedAt: new Date().toISOString() }
+          }
+        );
         break;
 
       case 'update':
@@ -80,16 +84,11 @@ export async function POST(request: Request) {
             }
           }
         );
-        return NextResponse.json({ message: "Member updated successfully" });
+        break;
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
-
-    await db.collection("teams").updateOne(
-      { _id: new ObjectId(teamId) },
-      updateOperation
-    );
 
     return NextResponse.json({ message: "Member synced successfully" });
   } catch (error) {
