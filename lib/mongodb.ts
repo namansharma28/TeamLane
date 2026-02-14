@@ -65,12 +65,10 @@ export async function connectToDatabase() {
       throw new Error('Missing MONGODB_URI environment variable');
     }
     
-    if (!process.env.MONGODB_DB) {
-      throw new Error('Missing MONGODB_DB environment variable');
-    }
-    
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    // Use 'gravitas' as the default database name (same as Gravitas for SSO)
+    const dbName = process.env.MONGODB_DB || 'gravitas';
+    const db = client.db(dbName);
     return { db, client };
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
