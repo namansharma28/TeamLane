@@ -190,22 +190,22 @@ export default function UserSettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container max-w-4xl py-6 space-y-6">
+      <div className="container max-w-4xl py-3 sm:py-4 md:py-6 space-y-3 sm:space-y-4 md:space-y-6 px-3 sm:px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
         >
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
                 Profile Settings
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-xs sm:text-sm md:text-base">
                 Manage your personal account settings
               </p>
             </div>
@@ -215,8 +215,9 @@ export default function UserSettingsPage() {
               variant="outline" 
               size="sm" 
               onClick={handleBackToTeam}
+              className="w-full sm:w-auto text-xs sm:text-sm"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Back to Team
             </Button>
           )}
@@ -228,79 +229,81 @@ export default function UserSettingsPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="profile">
+            <TabsList className="mb-3 sm:mb-4 md:mb-6 w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+              <TabsTrigger value="profile" className="text-xs sm:text-sm">
                 Profile
               </TabsTrigger>
-              <TabsTrigger value="account">
+              <TabsTrigger value="account" className="text-xs sm:text-sm">
                 Account
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="profile" className="space-y-6">
+            <TabsContent value="profile" className="space-y-3 sm:space-y-4 md:space-y-6">
               <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">
+                <CardHeader className="p-3 sm:p-4 md:p-6">
+                  <CardTitle className="text-base sm:text-lg md:text-xl">
                     Personal Information
                   </CardTitle>
-                  <CardDescription>Update your personal details</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">Update your personal details</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center space-x-6 p-4 bg-muted/50 rounded-lg border">
-                    <Avatar className="h-20 w-20 shadow-lg">
+                <CardContent className="space-y-3 sm:space-y-4 md:space-y-6 p-3 sm:p-4 md:p-6 pt-0">
+                  <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6 p-3 sm:p-4 bg-muted/50 rounded-lg border">
+                    <Avatar className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shadow-lg">
                       <AvatarImage src={session.user.image || ''} alt={session.user.name || 'User'} />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-base sm:text-lg md:text-xl font-semibold">
                         {session.user.name?.split(' ').map(name => name[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-lg font-semibold">
+                      <p className="text-sm sm:text-base md:text-lg font-semibold">
                         {session.user.name || 'User'}
                       </p>
-                      <p className="text-sm text-muted-foreground">{session.user.email || ''}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground">{session.user.email || ''}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                         Profile picture is managed by your Google account
                       </p>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="name" className="text-xs sm:text-sm">Full Name</Label>
                     <Input 
                       id="name" 
                       value={name} 
                       onChange={(e) => setName(e.target.value)} 
                       placeholder="Your name"
+                      className="text-xs sm:text-sm"
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="email" className="text-xs sm:text-sm">Email Address</Label>
                     <Input 
                       id="email" 
                       value={session.user.email || ''} 
                       disabled 
                       placeholder="Your email address"
-                      className="bg-muted"
+                      className="bg-muted text-xs sm:text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Email address cannot be changed as it's linked to your Google account
                     </p>
                   </div>
                   
-                  <div className="flex justify-end pt-4">
+                  <div className="flex justify-end pt-2 sm:pt-3 md:pt-4">
                     <Button 
                       onClick={handleSaveSettings} 
                       disabled={isSaving}
+                      className="w-full sm:w-auto text-xs sm:text-sm"
                     >
                       {isSaving ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary-foreground mr-1 sm:mr-2"></div>
                           Saving...
                         </>
                       ) : (
                         <>
-                          <Save className="mr-2 h-4 w-4" />
+                          <Save className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                           Save Changes
                         </>
                       )}
@@ -310,35 +313,36 @@ export default function UserSettingsPage() {
               </Card>
             </TabsContent>
             
-            <TabsContent value="account" className="space-y-6">
+            <TabsContent value="account" className="space-y-3 sm:space-y-4 md:space-y-6">
               <Card className="shadow-lg border-destructive/50">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                <CardHeader className="p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-destructive" />
                     <div>
-                      <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="text-destructive text-base sm:text-lg md:text-xl">Danger Zone</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
                         Actions here cannot be undone. Be careful.
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg bg-destructive/5">
+                <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border border-destructive/50 rounded-lg bg-destructive/5 gap-3">
                     <div>
-                      <h3 className="font-medium text-destructive flex items-center gap-2">
-                        <Trash2 className="h-4 w-4" />
+                      <h3 className="font-medium text-destructive flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         Delete Account
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         This will permanently remove your account and all associated data
                       </p>
                     </div>
                     <Button 
                       variant="destructive" 
                       onClick={() => setShowDeleteConfirm(true)}
+                      className="w-full sm:w-auto text-xs sm:text-sm"
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
+                      <Trash2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Delete Account
                     </Button>
                   </div>

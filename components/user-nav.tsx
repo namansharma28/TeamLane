@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Users, ArrowLeftRight } from "lucide-react";
+import { LogOut, User, Settings, Users, ArrowLeftRight, Grid } from "lucide-react";
 import { TeamMembersDialog } from "@/components/TeamMembersDialog";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
@@ -27,6 +27,11 @@ export function UserNav() {
   const currentTeamId = params?.teamId as string;
   const [lastTeamId, setLastTeamId] = useState<string | null>(null);
   const [isTeamMembersOpen, setIsTeamMembersOpen] = useState(false);
+  
+  // Determine Gravitas URL based on environment
+  const gravitasUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : 'https://gravitas.grafene.in';
   
   // Save and retrieve the last visited teamId
   useEffect(() => {
@@ -94,6 +99,18 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        {/* Open Gravitas - Mobile only */}
+        <div className="md:hidden">
+          <DropdownMenuItem asChild>
+            <a href={gravitasUrl} target="_blank" rel="noopener noreferrer">
+              <Grid className="mr-2 h-4 w-4" />
+              <span>Open Gravitas</span>
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </div>
+        
         <DropdownMenuGroup>
             {teamIdToUse && (
               <>

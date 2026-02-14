@@ -350,79 +350,84 @@ export default function TeamSettingsPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Team Settings</h1>
+    <div className="container max-w-4xl py-3 sm:py-4 md:py-6 space-y-3 sm:space-y-4 md:space-y-6 px-3 sm:px-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Team Settings</h1>
         {!isAdmin && (
-          <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
-            Read-only view (Admin access required to make changes)
+          <div className="text-xs sm:text-sm text-muted-foreground bg-muted px-2 sm:px-3 py-1 rounded-md">
+            Read-only view (Admin access required)
           </div>
         )}
         {isAdmin && (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs sm:text-sm text-muted-foreground hidden md:block">
             <kbd className="px-2 py-1 bg-muted rounded">Ctrl+S</kbd> Save changes
           </div>
         )}
       </div>
 
       <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="general" data-value="general">
-            General
-            <kbd className="ml-2 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+        <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+          <TabsTrigger value="general" data-value="general" className="text-xs sm:text-sm">
+            <span className="sm:hidden">General</span>
+            <span className="hidden sm:inline">General</span>
+            <kbd className="ml-2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
               Alt+1
             </kbd>
           </TabsTrigger>
-          <TabsTrigger value="members" data-value="members">
-            Members
-            <kbd className="ml-2 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+          <TabsTrigger value="members" data-value="members" className="text-xs sm:text-sm">
+            <span className="sm:hidden">Members</span>
+            <span className="hidden sm:inline">Members</span>
+            <kbd className="ml-2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
               Alt+2
             </kbd>
           </TabsTrigger>
-          <TabsTrigger value="danger" data-value="danger">
-            Danger Zone
-            <kbd className="ml-2 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+          <TabsTrigger value="danger" data-value="danger" className="text-xs sm:text-sm">
+            <span className="sm:hidden">Danger</span>
+            <span className="hidden sm:inline">Danger Zone</span>
+            <kbd className="ml-2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
               Alt+3
             </kbd>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="general" className="space-y-4">
+        <TabsContent value="general" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Team Information</CardTitle>
-              <CardDescription>Basic information about your team</CardDescription>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <CardTitle className="text-base sm:text-lg md:text-xl">Team Information</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Basic information about your team</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Team Name</Label>
+            <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6 pt-0">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="name" className="text-xs sm:text-sm">Team Name</Label>
                 <Input 
                   id="name" 
                   name="name" 
                   value={formData.name} 
                   onChange={handleInputChange} 
-                  disabled={!isAdmin} 
+                  disabled={!isAdmin}
+                  className="text-xs sm:text-sm"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="description" className="text-xs sm:text-sm">Description</Label>
                 <Textarea 
                   id="description" 
                   name="description" 
-                  rows={4} 
+                  rows={3} 
                   value={formData.description} 
                   onChange={handleInputChange} 
                   placeholder="Describe the purpose of this team..." 
-                  disabled={!isAdmin} 
+                  disabled={!isAdmin}
+                  className="text-xs sm:text-sm"
                 />
               </div>
               
               {isAdmin && (
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveSettings} disabled={isSaving}>
+                  <Button onClick={handleSaveSettings} disabled={isSaving} className="text-xs sm:text-sm">
                     {isSaving ? 'Saving...' : 'Save Changes'}
-                    <kbd className="ml-2 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <kbd className="ml-2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
                       Alt+S
                     </kbd>
                   </Button>
@@ -432,20 +437,20 @@ export default function TeamSettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="members" className="space-y-4">
+        <TabsContent value="members" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Manage who has access to this team</CardDescription>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <CardTitle className="text-base sm:text-lg md:text-xl">Team Members</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Manage who has access to this team</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-4">
-                <div className="text-sm">
+            <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+              <div className="flex flex-col space-y-3 sm:space-y-4">
+                <div className="text-xs sm:text-sm">
                   <p>Currently <strong>{teamData.members.length}</strong> members in this team</p>
                   <p className="text-muted-foreground">Created by {teamData.creator?.name || "Unknown"} on {new Date(teamData.createdAt).toLocaleDateString()}</p>
                 </div>
                 
-                <Button onClick={() => setMembersDialogOpen(true)}>
+                <Button onClick={() => setMembersDialogOpen(true)} className="text-xs sm:text-sm">
                   Manage Team Members
                 </Button>
               </div>
@@ -453,41 +458,43 @@ export default function TeamSettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="danger" className="space-y-4">
+        <TabsContent value="danger" className="space-y-3 sm:space-y-4">
           <Card className="border-red-200">
-            <CardHeader>
-              <CardTitle className="text-red-500">Danger Zone</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <CardTitle className="text-red-500 text-base sm:text-lg md:text-xl">Danger Zone</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Actions here can&apos;t be undone. Be careful.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6 pt-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-medium">Leave Team</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-medium text-sm sm:text-base">Leave Team</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     You will lose access to all team resources
                   </p>
                 </div>
                 <Button 
                   variant="outline" 
                   onClick={() => setLeaveDialogOpen(true)}
+                  className="text-xs sm:text-sm w-full sm:w-auto"
                 >
                   Leave Team
                 </Button>
               </div>
               
               {isCreator && (
-                <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 sm:pt-4 border-t gap-3">
                   <div>
-                    <h3 className="font-medium text-red-500">Delete Team</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-medium text-red-500 text-sm sm:text-base">Delete Team</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       This will permanently delete the team and all its data
                     </p>
                   </div>
                   <Button 
                     variant="destructive" 
                     onClick={() => setDeleteDialogOpen(true)}
+                    className="text-xs sm:text-sm w-full sm:w-auto"
                   >
                     Delete Team
                   </Button>

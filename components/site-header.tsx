@@ -50,7 +50,9 @@ export function SiteHeader() {
           </div>
           
           <div className="flex items-center gap-0.5 sm:gap-1">
-            <AppSwitcher />
+            <div className="hidden md:block">
+              <AppSwitcher />
+            </div>
             <ThemeToggle />
             <UserNav />
           </div>

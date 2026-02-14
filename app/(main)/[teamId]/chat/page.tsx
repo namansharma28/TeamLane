@@ -261,23 +261,23 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] p-6 pt-0 gap-6">
+    <div className="flex flex-col h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] p-2 sm:p-4 md:p-6 pt-0 gap-2 sm:gap-4 md:gap-6">
 
       {/* Main Chat Layout */}
-      <div className="grid gap-6 lg:grid-cols-4 flex-1 min-h-0">
+      <div className="grid gap-2 sm:gap-4 md:gap-6 lg:grid-cols-4 flex-1 min-h-0">
 
-      {/* Header Card */}
+      {/* Header Card - Desktop only */}
         <div className="lg:col-span-1">
-            <div className="bg-background rounded-xl shadow-lg border p-4 my-2 mb-3 flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+            <div className="bg-background rounded-xl shadow-lg border p-2 sm:p-3 md:p-4 my-1 sm:my-2 mb-2 sm:mb-3 flex-shrink-0 hidden lg:block">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                <div className="h-7 w-7 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <MessageSquare className="h-3.5 w-3.5 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight">
+                  <h1 className="text-base sm:text-2xl md:text-3xl font-bold tracking-tight">
                     Team Chat
                   </h1>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-xs sm:text-sm md:text-base hidden sm:block">
                     Communicate with your team in real-time
                   </p>
                 </div>
@@ -286,21 +286,23 @@ export default function ChatPage() {
 
         {/* Channel Sidebar */}
           <Card className="shadow-lg h-max">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Channels</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-4 md:p-6">
+              <CardTitle className="text-sm sm:text-base md:text-lg">Channels</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {channels.map((channel) => (
-                <Button
-                  key={channel.id}
-                  variant={currentChannel === channel.id ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setCurrentChannel(channel.id)}
-                >
-                  {channel.icon}
-                  <span className="ml-2">{channel.name}</span>
-                </Button>
-              ))}
+            <CardContent className="space-y-1 sm:space-y-2 p-2 sm:p-4 md:p-6 pt-0">
+              <div className="flex lg:flex-col gap-1 sm:gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+                {channels.map((channel) => (
+                  <Button
+                    key={channel.id}
+                    variant={currentChannel === channel.id ? "default" : "ghost"}
+                    className="justify-start text-xs sm:text-sm whitespace-nowrap lg:w-full h-7 sm:h-8 md:h-9 px-2 sm:px-3 md:px-4"
+                    onClick={() => setCurrentChannel(channel.id)}
+                  >
+                    {channel.icon}
+                    <span className="ml-1 sm:ml-2">{channel.name}</span>
+                  </Button>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -308,76 +310,76 @@ export default function ChatPage() {
         {/* Chat Area */}
         <div className="lg:col-span-3 flex flex-col min-h-0">
           <Card className="shadow-xl flex flex-col h-full">
-            <CardHeader className="border-b flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Hash className="h-4 w-4 text-primary" />
+            <CardHeader className="border-b flex-shrink-0 p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Hash className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl">
+                    <CardTitle className="text-sm sm:text-lg md:text-xl">
                       #{currentChannel}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-xs sm:text-sm hidden sm:block">
                       Channel for {currentChannel} team discussion
                     </CardDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {isConnected ? (
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs font-medium">Connected</span>
+                    <div className="flex items-center gap-1 sm:gap-2 text-green-600 dark:text-green-400">
+                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-[10px] sm:text-xs font-medium">Connected</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                      <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                      <span className="text-xs font-medium">Connecting...</span>
+                    <div className="flex items-center gap-1 sm:gap-2 text-red-600 dark:text-red-400">
+                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500 rounded-full"></div>
+                      <span className="text-[10px] sm:text-xs font-medium">Connecting...</span>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="text-xs mt-2 text-muted-foreground bg-muted px-3 py-1 rounded-full inline-block">
+              <div className="text-[10px] sm:text-xs mt-1 sm:mt-2 text-muted-foreground bg-muted px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block hidden md:block">
                 Press <kbd className="px-1 py-0.5 text-xs rounded border bg-background font-mono">Alt+M</kbd> to quickly focus the message input
               </div>
             </CardHeader>
             
             {/* Messages Area - Scrollable */}
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
-              <ScrollArea className="flex-1 p-6">
-                <div className="space-y-6" ref={scrollAreaRef}>
+              <ScrollArea className="flex-1 p-2 sm:p-4 md:p-6">
+                <div className="space-y-3 sm:space-y-4 md:space-y-6" ref={scrollAreaRef}>
                   {messages.map((msg) => (
                     <div
                       key={msg._id}
-                      className={`flex items-start gap-4 ${
+                      className={`flex items-start gap-2 sm:gap-3 md:gap-4 ${
                         msg.sender.email === session?.user?.email
                           ? "justify-end"
                           : ""
                       }`}
                     >
                       {msg.sender.email !== session?.user?.email && (
-                        <Avatar className="border-2">
+                        <Avatar className="border-2 h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10">
                           <AvatarImage src={msg.sender.avatar || undefined} />
-                          <AvatarFallback className="bg-primary text-primary-foreground">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
                             {msg.sender.initials}
                           </AvatarFallback>
                         </Avatar>
                       )}
-                      <div className={`grid gap-2 max-w-[70%] ${
+                      <div className={`grid gap-1 sm:gap-1.5 md:gap-2 max-w-[75%] sm:max-w-[70%] ${
                         msg.sender.email === session?.user?.email ? 'text-right' : ''
                       }`}>
-                        <div className="flex items-center gap-2">
-                          <div className="font-semibold">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="font-semibold text-xs sm:text-sm">
                             {msg.sender.name}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
                             {formatMessageTime(msg.createdAt)}
                           </div>
                         </div>
                         
                         {/* Reply content if exists */}
                         {msg.replyTo && (
-                          <div className="mb-2 p-3 border-l-4 border-primary bg-muted rounded-r text-xs text-left">
+                          <div className="mb-1 sm:mb-2 p-2 sm:p-3 border-l-4 border-primary bg-muted rounded-r text-[10px] sm:text-xs text-left">
                             <span className="font-semibold">
                               {msg.replyTo.senderName}:
                             </span> {msg.replyTo.content}
@@ -385,7 +387,7 @@ export default function ChatPage() {
                         )}
                         
                         {/* Actual message */}
-                        <div className={`px-4 py-3 rounded-2xl shadow-sm ${
+                        <div className={`px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-2xl shadow-sm text-xs sm:text-sm ${
                           msg.sender.email === session?.user?.email 
                             ? 'bg-primary text-primary-foreground ml-auto'
                             : 'bg-muted border'
@@ -397,7 +399,7 @@ export default function ChatPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs self-start"
+                          className="text-[10px] sm:text-xs self-start h-6 sm:h-7 px-2 sm:px-3"
                           onClick={() => setReplyTo(msg)}
                         >
                           Reply
@@ -405,9 +407,9 @@ export default function ChatPage() {
                       </div>
                       
                       {msg.sender.email === session?.user?.email && (
-                        <Avatar className="border-2">
+                        <Avatar className="border-2 h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10">
                           <AvatarImage src={msg.sender.avatar || undefined} />
-                          <AvatarFallback className="bg-primary text-primary-foreground">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
                             {msg.sender.initials}
                           </AvatarFallback>
                         </Avatar>
@@ -419,19 +421,19 @@ export default function ChatPage() {
               
               {/* Reply Preview - Fixed above input */}
               {replyTo && (
-                <div className="px-6 py-3 border-t bg-muted/50">
-                  <div className="p-3 border-l-4 border-primary bg-background rounded-r relative">
+                <div className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 border-t bg-muted/50">
+                  <div className="p-2 sm:p-3 border-l-4 border-primary bg-background rounded-r relative">
                     <div className="flex justify-between items-start">
-                      <div className="pr-10 max-w-full">
-                        <div className="text-xs text-muted-foreground mb-1">
+                      <div className="pr-8 sm:pr-10 max-w-full">
+                        <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                           Replying to <b>{replyTo.sender.name || replyTo.sender.email}</b>
                         </div>
-                        <div className="text-sm truncate">{replyTo.content}</div>
+                        <div className="text-xs sm:text-sm truncate">{replyTo.content}</div>
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                        className="absolute top-0.5 sm:top-1 right-0.5 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 text-base sm:text-lg"
                         onClick={() => setReplyTo(null)}
                       >
                         &times;
@@ -442,17 +444,17 @@ export default function ChatPage() {
               )}
               
               {/* Message Input - Fixed at bottom */}
-              <div className="p-6 border-t bg-muted/30 flex-shrink-0">
-                <form onSubmit={handleSendMessage} className="flex gap-3">
+              <div className="p-2 sm:p-4 md:p-6 border-t bg-muted/30 flex-shrink-0">
+                <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
                   <div className="relative flex-1">
                     <Input
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       ref={messageInputRef}
-                      className="pr-16"
+                      className="pr-12 sm:pr-16 text-xs sm:text-sm h-8 sm:h-9 md:h-10"
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded border">
+                    <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-[10px] sm:text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border hidden md:block">
                       Alt+M
                     </div>
                   </div>
@@ -460,8 +462,9 @@ export default function ChatPage() {
                     type="submit" 
                     size="icon" 
                     disabled={!newMessage.trim() || !isConnected}
+                    className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                   </Button>
                 </form>
               </div>

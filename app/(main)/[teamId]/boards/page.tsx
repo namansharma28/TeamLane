@@ -95,41 +95,41 @@ export default function BoardsPage() {
   </div>;
 
   return (
-    <div className="flex flex-col space-y-6 min-h-screen p-6 pt-0">
+    <div className="flex flex-col space-y-3 sm:space-y-4 md:space-y-6 min-h-screen p-3 sm:p-4 md:p-6 pt-0">
       {/* Header Card */}
-      <div className="bg-background rounded-xl shadow-lg border p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <LayoutGrid className="h-6 w-6 text-primary" />
+      <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
                 Boards
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-xs sm:text-sm md:text-base">
                 Manage and organize your tasks with Kanban boards
               </p>
             </div>
           </div>
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => setOpen(true)} className="w-full sm:w-auto text-xs sm:text-sm">
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Create Board
           </Button>
         </div>
       </div>
       
-      <div className="flex flex-col lg:flex-row items-start gap-6">
+      <div className="flex flex-col lg:flex-row items-start gap-3 sm:gap-4 md:gap-6">
         {/* Sidebar */}
-        <div className="w-full lg:w-80 flex flex-col gap-6">
+        <div className="w-full lg:w-80 flex flex-col gap-3 sm:gap-4 md:gap-6">
           {/* Search Card */}
-          <div className="bg-background rounded-xl shadow-lg border p-4">
+          <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2 sm:left-3 top-2 sm:top-3 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               <input
                 type="search"
                 placeholder="Search boards..."
-                className="w-full rounded-lg border bg-background py-2 pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="w-full rounded-lg border bg-background py-1.5 sm:py-2 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -137,21 +137,21 @@ export default function BoardsPage() {
           </div>
           
           {/* Categories Card */}
-          <div className="bg-background rounded-xl shadow-lg border p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-primary rounded-full"></div>
+          <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
+            <h3 className="font-semibold mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full"></div>
               Categories
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               {categories.map(category => (
                 <Button 
                   key={category}
                   variant={selectedCategory === category ? "default" : "ghost"} 
-                  className="w-full justify-start"
+                  className="w-full justify-start text-xs sm:text-sm h-8 sm:h-9 md:h-10"
                   onClick={() => setSelectedCategory(category)}
                 >
-                  <span>{category}</span>
-                  <span className={`ml-auto text-xs py-1 px-2 rounded-full ${
+                  <span className="truncate">{category}</span>
+                  <span className={`ml-auto text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2 rounded-full ${
                     selectedCategory === category 
                       ? 'bg-primary-foreground/20' 
                       : 'bg-muted'
@@ -165,28 +165,28 @@ export default function BoardsPage() {
         </div>
         
         {/* Main Content Card */}
-        <div className="flex-1 w-full bg-background rounded-xl shadow-lg border p-6">
+        <div className="flex-1 w-full bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
           <ScrollArea className="w-full">
-            <div className="min-h-[400px]">
+            <div className="min-h-[300px] sm:min-h-[350px] md:min-h-[400px]">
               {filteredBoards.length > 0 ? (
                 <BoardsList boards={filteredBoards} />
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <LayoutGrid className="h-12 w-12 text-primary" />
+                <div className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 text-center px-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 sm:mb-5 md:mb-6">
+                    <LayoutGrid className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-1 sm:mb-2">
                     {searchTerm || selectedCategory !== 'All Boards' ? 'No boards found' : 'No boards yet'}
                   </h3>
-                  <p className="text-muted-foreground mb-6 max-w-md">
+                  <p className="text-muted-foreground mb-4 sm:mb-5 md:mb-6 max-w-md text-xs sm:text-sm md:text-base">
                     {searchTerm || selectedCategory !== 'All Boards' 
                       ? 'Try adjusting your search or filter criteria'
                       : 'Create your first board to start organizing your team\'s tasks'
                     }
                   </p>
                   {!searchTerm && selectedCategory === 'All Boards' && (
-                    <Button onClick={() => setOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
+                    <Button onClick={() => setOpen(true)} className="text-xs sm:text-sm">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       Create Your First Board
                     </Button>
                   )}
