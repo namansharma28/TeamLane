@@ -1,11 +1,10 @@
 import { MetadataRoute } from 'next';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://teamlane.grafene.in';
-  const currentDate = new Date().toISOString();
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = 'https://teamlane.grafene.in';
+  const currentDate = new Date();
 
-  // Static pages
-  const staticPages: MetadataRoute.Sitemap = [
+  return [
     {
       url: baseUrl,
       lastModified: currentDate,
@@ -31,18 +30,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/auth/forgot-password`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
       url: `${baseUrl}/settings`,
       lastModified: currentDate,
       changeFrequency: 'weekly',
       priority: 0.6,
     },
   ];
-
-  return staticPages;
 }
