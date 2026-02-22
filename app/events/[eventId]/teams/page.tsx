@@ -42,29 +42,37 @@ export default function EventTeamsPage() {
 
   useEffect(() => {
     const fetchTeams = async () => {
-      if (!eventId || !formId) return;
+      if (!eventId || !formId) {
+        console.log('[EventTeams] Missing eventId or formId:', { eventId, formId });
+        return;
+      }
       
       try {
         // Call Gravitas API to get registered teams
         const gravitasUrl = process.env.NODE_ENV === 'production' 
           ? 'https://gravitas.grafene.in' 
           : 'http://localhost:3001';
+        
+        const url = `${gravitasUrl}/api/events/${eventId}/forms/${formId}/teams`;
+        console.log('[EventTeams] Fetching from:', url);
           
-        const response = await fetch(
-          `${gravitasUrl}/api/events/${eventId}/forms/${formId}/teams`,
-          {
-            credentials: 'include'
-          }
-        );
+        const response = await fetch(url, {
+          credentials: 'include'
+        });
+        
+        console.log('[EventTeams] Response status:', response.status);
         
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[EventTeams] Error response:', errorText);
           throw new Error('Failed to fetch teams');
         }
         
         const data = await response.json();
+        console.log('[EventTeams] Received data:', data);
         setTeams(data.teams || []);
       } catch (error) {
-        console.error('Error:', error);
+        console.error('[EventTeams] Error:', error);
         setError(error instanceof Error ? error.message : 'Something went wrong');
       } finally {
         setLoading(false);
@@ -85,23 +93,24 @@ export default function EventTeamsPage() {
   );
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-12 max-w-7xl">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => window.history.back()}
+            className="shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
               Registered Teams
             </h1>
             {eventName && (
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base truncate">
                 {decodeURIComponent(eventName)}
               </p>
             )}
@@ -109,50 +118,50 @@ export default function EventTeamsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-primary" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{teams.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Teams</p>
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-bold">{teams.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Teams</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {teams.reduce((sum, team) => sum + team.memberCount, 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Total Participants</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Participants</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-600" />
+          <Card className="shadow-md hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {teams.length > 0 
                       ? Math.round(teams.reduce((sum, team) => sum + team.memberCount, 0) / teams.length)
                       : 0}
                   </p>
-                  <p className="text-sm text-muted-foreground">Avg Team Size</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Team Size</p>
                 </div>
               </div>
             </CardContent>
@@ -161,67 +170,69 @@ export default function EventTeamsPage() {
 
         {/* Teams List */}
         {teams.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Teams Registered Yet</h3>
-              <p className="text-muted-foreground">
+          <Card className="shadow-md">
+            <CardContent className="p-8 sm:p-12 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                <Users className="h-8 w-8 sm:h-10 sm:w-10 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">No Teams Registered Yet</h3>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                 Teams will appear here once they register for this event
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {teams.map((team) => (
-              <Card key={team.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{team.name}</CardTitle>
+              <Card key={team.id} className="shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg sm:text-xl mb-1 sm:mb-2 truncate">{team.name}</CardTitle>
                       {team.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                           {team.description}
                         </p>
                       )}
                     </div>
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-2 shrink-0 text-xs">
                       {team.memberCount} {team.memberCount === 1 ? 'member' : 'members'}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+                <CardContent className="pt-0">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Team Members */}
                     <div>
-                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                        <Users className="h-4 w-4" />
+                      <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                         Team Members
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 sm:space-y-2">
                         {team.members.map((member, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                            className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg hover:bg-accent/50 transition-colors"
                           >
-                            <Avatar className="h-8 w-8">
+                            <Avatar className="h-7 w-7 sm:h-8 sm:w-8 shrink-0">
                               <AvatarImage 
                                 src={member.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`}
                                 alt={member.name}
                               />
-                              <AvatarFallback>
+                              <AvatarFallback className="text-xs">
                                 {member.name[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
+                              <p className="text-xs sm:text-sm font-medium truncate">
                                 {member.name}
                               </p>
-                              <p className="text-xs text-muted-foreground truncate">
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                 {member.email}
                               </p>
                             </div>
                             {member.role === 'admin' && (
-                              <Crown className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                              <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
                             )}
                           </div>
                         ))}
@@ -229,13 +240,13 @@ export default function EventTeamsPage() {
                     </div>
 
                     {/* Team Info */}
-                    <div className="pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="pt-2 sm:pt-3 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>Created {new Date(team.createdAt).toLocaleDateString()}</span>
                       </div>
                       {team.linkedCommunityHandle && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs">
                           @{team.linkedCommunityHandle}
                         </Badge>
                       )}
