@@ -94,7 +94,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen items-center justify-center">
       {/* Header */}
       <header className={`fixed top-4 left-4 right-4 z-50 border bg-background/95 backdrop-blur rounded-xl shadow-lg transition-all ${scrolled ? 'shadow-xl' : ''}`}>
         <div className="flex h-14 items-center px-4">
@@ -196,8 +196,8 @@ export default function LandingPage() {
           </div>
           
           <div className="container px-4">
-            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-              <div className="space-y-6">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center ">
+              <div className="space-y-6 md:pl-7">
                 <div className="inline-flex items-center px-3 py-1 bg-primary/10 rounded-full border">
                   <CheckCircle className="h-4 w-4 text-primary mr-2" />
                   <span className="text-sm font-medium">Modern Team Collaboration</span>
