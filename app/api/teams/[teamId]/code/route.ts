@@ -9,6 +9,16 @@ function generateTeamCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+// Track who joined using the code
+async function trackCodeUsage(db: any, teamId: string, userId: string, userEmail: string) {
+  await db.collection('teamCodeUsage').insertOne({
+    teamId,
+    userId,
+    userEmail,
+    joinedAt: new Date()
+  });
+}
+
 interface RouteContext {
   params: Promise<{
     teamId: string;

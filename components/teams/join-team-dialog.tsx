@@ -36,10 +36,12 @@ export function JoinTeamDialog({
   open,
   onOpenChange,
   onTeamJoined,
+  returnTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTeamJoined?: () => Promise<void>;
+  returnTo?: string | null;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -73,7 +75,13 @@ export function JoinTeamDialog({
         await onTeamJoined();
       }
       
-      router.push(`/${data.id}/dashboard`);
+      // If returnTo URL is provided, redirect there instead of dashboard
+      if (returnTo) {
+        window.location.href = returnTo;
+      } else {
+        router.push(`/${data.id}/dashboard`);
+      }
+      
       onOpenChange(false);
       form.reset();
     } catch (error) {

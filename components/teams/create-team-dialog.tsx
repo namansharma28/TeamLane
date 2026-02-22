@@ -39,10 +39,12 @@ export function CreateTeamDialog({
   open,
   onOpenChange,
   onTeamCreated,
+  returnTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTeamCreated?: () => Promise<void>;
+  returnTo?: string | null;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -77,7 +79,13 @@ export function CreateTeamDialog({
         await onTeamCreated();
       }
       
-      router.push(`/${data.id}/dashboard`);
+      // If returnTo URL is provided, redirect there instead of dashboard
+      if (returnTo) {
+        window.location.href = returnTo;
+      } else {
+        router.push(`/${data.id}/dashboard`);
+      }
+      
       onOpenChange(false);
       form.reset();
     } catch (error) {

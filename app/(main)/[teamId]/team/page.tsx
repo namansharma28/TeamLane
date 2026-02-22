@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { TeamMembersDialog } from "@/components/TeamMembersDialog";
-import { Users, Crown, UserCheck, Calendar } from "lucide-react";
+import { Users, Crown, UserCheck, Calendar, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { LoadingPage } from '@/components/ui/loading-page';
 
 interface TeamMember {
@@ -32,6 +32,8 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isTeamMembersOpen, setIsTeamMembersOpen] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -67,6 +69,14 @@ export default function TeamPage() {
   const adminMembers = team.members.filter(member => member.role === 'admin');
   const regularMembers = team.members.filter(member => member.role === 'member');
 
+  const handleCopyCode = () => {
+    if (team?.code) {
+      navigator.clipboard.writeText(team.code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-3 sm:space-y-4 md:space-y-6 min-h-screen p-3 sm:p-4 md:p-6">
       {/* Header Card */}
@@ -91,6 +101,51 @@ export default function TeamPage() {
           </Button>
         </div>
       </div>
+
+      {/* Team Join Code Section - Only for admins */}
+      {adminMembers.some(m => m.email === team.members.find(member => member.role === 'admin')?.email) && team.code && (
+        <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold mb-1">Team Join Code</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Share this code with others to join your team
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-muted px-3 sm:px-4 py-2 rounded-lg">
+                <code className="text-base sm:text-lg font-mono font-bold tracking-wider">
+                  {showCode ? team.code : '••••••'}
+                </code>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowCode(!showCode)}
+                className="h-9 w-9 sm:h-10 sm:w-10"
+              >
+                {showCode ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyCode}
+                className="h-9 w-9 sm:h-10 sm:w-10"
+              >
+                {codeCopied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">

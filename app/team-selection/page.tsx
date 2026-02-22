@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -24,11 +24,15 @@ interface Team {
 
 export default function TeamSelectionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
   const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
+  
+  // Get returnTo URL from query params
+  const returnTo = searchParams?.get('returnTo');
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -55,7 +59,12 @@ export default function TeamSelectionPage() {
   }, [toast]);
 
   const handleTeamClick = (teamId: string) => {
-    router.push(`/${teamId}/dashboard`);
+    // If there's a returnTo URL, redirect there instead of dashboard
+    if (returnTo) {
+      window.location.href = returnTo;
+    } else {
+      router.push(`/${teamId}/dashboard`);
+    }
   };
 
   const getUserRole = (team: Team, userEmail?: string) => {
@@ -195,11 +204,13 @@ export default function TeamSelectionPage() {
         <CreateTeamDialog 
           open={isCreateTeamOpen}
           onOpenChange={setIsCreateTeamOpen}
+          returnTo={returnTo}
         />
 
         <JoinTeamDialog
           open={isJoinTeamOpen}
           onOpenChange={setIsJoinTeamOpen}
+          returnTo={returnTo}
         />
       </div>
     </div>

@@ -45,12 +45,18 @@ export async function POST(request: Request) {
       });
     }
 
+    // Generate team join code
+    const generateTeamCode = () => {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    };
+
     // Create the team
     const result = await db.collection("teams").insertOne({
       name,
       description: description || '',
       linkedCommunityId,
       linkedCommunityHandle,
+      code: generateTeamCode(), // Auto-generate code on creation
       members: members.map((m: any) => ({
         email: m.email,
         role: m.role,
