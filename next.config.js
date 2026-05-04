@@ -13,9 +13,18 @@ const nextConfig = {
   images: {
     domains: ['github.com', 'localhost'],
   },
+  // Optimize development build speed
+  reactStrictMode: false, // Disable in dev for faster builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Experimental features for faster builds
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
   // Add empty turbopack config to silence the warning
   turbopack: {},
-  webpack: (config) => {
+  webpack: (config, { dev, isServer }) => {
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
       'bufferutil': 'commonjs bufferutil',
@@ -29,6 +38,16 @@ const nextConfig = {
       tls: false,
       dns: false,
     };
+    
+    // Optimize development builds
+    if (dev) {
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+      };
+    }
     
     return config;
   },

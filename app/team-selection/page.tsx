@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Plus, Users, ArrowLeft, Crown, Calendar, Building2 } from "lucide-react
 import { CreateTeamDialog } from "@/components/teams/create-team-dialog";
 import { JoinTeamDialog } from "@/components/teams/join-team-dialog";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { useDashboard } from "@/lib/services/client";
+import { useSession } from "next-auth/react";
 
 interface Team {
   _id: string;
@@ -20,43 +22,32 @@ interface Team {
     joinedAt: string;
   }>;
   createdAt: string;
+  boardCount?: number;
 }
 
 function TeamSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
   const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
+  
+  // Use React Query hook for dashboard data
+  const { data, isLoading: loading, error } = useDashboard();
+  const teams = data?.teams || [];
   
   // Get returnTo URL from query params
   const returnTo = searchParams?.get('returnTo');
 
-  useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const response = await fetch('/api/teams');
-        if (!response.ok) {
-          throw new Error('Failed to fetch teams');
-        }
-        const data = await response.json();
-        setTeams(data);
-      } catch (error) {
-        console.error('Error fetching teams:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load teams. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTeams();
-  }, [toast]);
+  // Show error toast if fetch failed
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to load teams. Please try again.",
+      variant: "destructive",
+    });
+  }
 
   const handleTeamClick = (teamId: string) => {
     // If there's a returnTo URL, redirect there instead of dashboard
@@ -67,7 +58,7 @@ function TeamSelectionContent() {
     }
   };
 
-  const getUserRole = (team: Team, userEmail?: string) => {
+  const getUserRole = (team: Team, userEmail?: string | null) => {
     if (!userEmail) return 'member';
     const member = team.members.find(m => m.email === userEmail);
     return member?.role || 'member';
@@ -151,7 +142,7 @@ function TeamSelectionContent() {
                   <CardHeader className="p-3 sm:p-4 md:p-6">
                     <div className="flex items-start justify-between mb-1 sm:mb-2">
                       <CardTitle className="text-sm sm:text-base md:text-lg lg:text-xl">{team.name}</CardTitle>
-                      {getUserRole(team) === 'admin' && (
+                      {getUserRole(team, session?.user?.email) === 'admin' && (
                         <div className="flex items-center gap-1 bg-primary/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
                           <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary" />
                           <span className="text-[10px] sm:text-xs font-medium">Admin</span>
@@ -177,6 +168,12 @@ function TeamSelectionContent() {
                           <span className="sm:hidden">{new Date(team.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         </div>
                       </div>
+                      
+                      {team.boardCount !== undefined && team.boardCount > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {team.boardCount} board{team.boardCount !== 1 ? 's' : ''}
+                        </div>
+                      )}
                       
                       <div className="flex -space-x-2">
                         {team.members.slice(0, 4).map((member, idx) => (

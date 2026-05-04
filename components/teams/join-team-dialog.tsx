@@ -93,25 +93,25 @@ export function JoinTeamDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
             Join Team
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Enter the team code to join an existing workspace
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
             <FormField
               control={form.control}
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Team Code</FormLabel>
+                  <FormLabel className="text-sm">Team Code</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="Enter 6-character code"
@@ -119,7 +119,7 @@ export function JoinTeamDialog({
                       value={field.value.toUpperCase()}
                       onChange={e => field.onChange(e.target.value.toUpperCase())}
                       maxLength={6}
-                      className="text-center text-lg font-mono tracking-widest"
+                      className="text-center text-base sm:text-lg font-mono tracking-widest h-12"
                     />
                   </FormControl>
                   <FormMessage />
@@ -127,18 +127,19 @@ export function JoinTeamDialog({
               )}
             />
 
-            <DialogFooter className="gap-3">
+            <DialogFooter className="gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
                 onClick={() => onOpenChange(false)} 
                 type="button"
-                className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50"
+                className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50 w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={isLoading}
+                className="w-full sm:w-auto"
               >
                 {isLoading ? (
                   <>

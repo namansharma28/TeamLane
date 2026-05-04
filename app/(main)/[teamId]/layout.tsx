@@ -1,20 +1,16 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { TeamBreadcrumb } from "@/components/team-breadcrumb";
+import { BreadcrumbWrapper } from "@/components/breadcrumb-wrapper";
 
 export default function TeamLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const params = useParams();
-  const teamId = params?.teamId as string;
-  
   return (
     <div className="flex flex-col">
-      <TeamBreadcrumb />
-      <div className="py-1 mx-5">
+      <BreadcrumbWrapper />
+      <div className="py-1 mx-0 md:mx-5">
         {children}
       </div>
     </div>

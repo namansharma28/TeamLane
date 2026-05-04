@@ -6,38 +6,47 @@ import { BoardsList } from "@/components/boards/boards-list";
 import { CreateBoardDialog } from "@/components/boards/create-board-dialog";
 import { Plus, Search, LayoutGrid } from "lucide-react";
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BoardProps } from "@/components/boards/boards-list";
 import { LoadingPage } from "@/components/ui/loading-page";
+import { useTeam } from "@/lib/services/client";
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys, invalidateQueries } from '@/lib/services/query-client';
+import { useSocket } from "@/hooks/useSocket";
 
 export default function BoardsPage() {
   const params = useParams() || {};
   const teamId = params.teamId as string;
-  const [boards, setBoards] = useState<BoardProps[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  
+  const { data: teamData, isLoading: loading } = useTeam(teamId);
+  const boards = teamData?.boards || [];
+  const { socket, EVENTS } = useSocket(teamId);
+  
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Boards');
 
+  // Listen for task updates and invalidate team data to refetch board stats
   useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const response = await fetch(`/api/teams/${teamId}/boards`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch team data');
-        }        
-        const data = await response.json();
-        setBoards(data.boards);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
+    if (!socket) return;
+
+    const handleTaskUpdate = () => {
+      // Invalidate and refetch team data when any task is updated
+      queryClient.invalidateQueries({ queryKey: queryKeys.team.composite(teamId) });
     };
 
-    fetchBoards();
-  }, [teamId]);
+    // Listen to all task-related events
+    socket.on(EVENTS.TASK_CREATED, handleTaskUpdate);
+    socket.on(EVENTS.TASK_UPDATED, handleTaskUpdate);
+    socket.on(EVENTS.TASK_DELETED, handleTaskUpdate);
+
+    return () => {
+      socket.off(EVENTS.TASK_CREATED, handleTaskUpdate);
+      socket.off(EVENTS.TASK_UPDATED, handleTaskUpdate);
+      socket.off(EVENTS.TASK_DELETED, handleTaskUpdate);
+    };
+  }, [socket, EVENTS, teamId, queryClient]);
 
   const handleCreateBoard = async (newBoard: Omit<BoardProps, '_id'>) => {
     try {
@@ -54,8 +63,8 @@ export default function BoardsPage() {
         throw new Error(errorData.error || 'Failed to create board');
       }
       
-      const data = await response.json();
-      setBoards([...boards, data.board]);
+      // Invalidate team data to refetch with new board
+      invalidateQueries.team(queryClient, teamId);
       setOpen(false);
     } catch (error) {
       console.error('Error creating board:', error);
@@ -63,6 +72,10 @@ export default function BoardsPage() {
   };
 
   const filteredBoards = boards
+    .map(board => ({
+      ...board,
+      teamId: teamId // Add teamId to each board
+    }))
     .filter(board => 
       board.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
       board.description.toLowerCase().includes(searchTerm.toLowerCase())

@@ -216,192 +216,199 @@ export function TeamMembersDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Users className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-xl">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Team Members
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               Manage your team members and invitations
             </DialogDescription>
           </DialogHeader>
 
-          {isAdmin && (
-            <div className="space-y-6 py-4 border-b">
-              <div className="space-y-3">
-                <Label htmlFor="teamCode" className="text-sm font-medium">Team Join Code</Label>
-                <div className="flex items-center space-x-3">
-                  <Input
-                    id="teamCode"
-                    value={joinCode}
-                    readOnly
-                    className="flex-1 font-mono text-center text-lg tracking-widest bg-muted"
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon" 
-                    variant="outline" 
-                    onClick={handleCopyCode}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+          <div className="flex-1 overflow-y-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            {isAdmin && (
+              <div className="space-y-4 sm:space-y-6 py-3 sm:py-4 border-b">
+                <div className="space-y-2 sm:space-y-3">
+                  <Label htmlFor="teamCode" className="text-xs sm:text-sm font-medium">Team Join Code</Label>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Input
+                      id="teamCode"
+                      value={joinCode}
+                      readOnly
+                      className="flex-1 font-mono text-center text-sm sm:text-lg tracking-widest bg-muted h-10 sm:h-auto"
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={handleCopyCode}
+                      className="h-10 w-10 flex-shrink-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    Share this code with others to let them join your team
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Share this code with others to let them join your team
-                </p>
-              </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="inviteEmail" className="text-sm font-medium">Add by Email</Label>
-                <div className="flex items-center space-x-3">
-                  <Input
-                    id="inviteEmail"
-                    type="email"
-                    placeholder="colleague@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon" 
-                    onClick={handleInvite}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2 sm:space-y-3">
+                  <Label htmlFor="inviteEmail" className="text-xs sm:text-sm font-medium">Add by Email</Label>
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Input
+                      id="inviteEmail"
+                      type="email"
+                      placeholder="colleague@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="flex-1 text-sm h-10"
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      onClick={handleInvite}
+                      className="h-10 w-10 flex-shrink-0"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-6 max-h-[400px] overflow-y-auto">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <Loading />
-                <p className="text-sm text-muted-foreground mt-2">Loading team members...</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Administrators */}
-                {adminMembers.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Crown className="h-4 w-4 text-yellow-600" />
-                      <h3 className="text-sm font-semibold">
-                        Administrators ({adminMembers.length})
-                      </h3>
+            <div className="space-y-4 sm:space-y-6 py-3 sm:py-4">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <Loading />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2">Loading team members...</p>
+                </div>
+              ) : (
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Administrators */}
+                  {adminMembers.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
+                        <h3 className="text-xs sm:text-sm font-semibold">
+                          Administrators ({adminMembers.length})
+                        </h3>
+                      </div>
+                      <div className="space-y-2 sm:space-y-3">
+                        {adminMembers.map((member) => (
+                          <div
+                            key={member.email}
+                            className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-muted/50"
+                          >
+                            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                              <div className="relative flex-shrink-0">
+                                <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
+                                    {getInitials(member.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 bg-yellow-500 rounded-full flex items-center justify-center">
+                                  <Crown className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-white" />
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm font-medium truncate">{member.name || member.email}</p>
+                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                  <span className="truncate">{member.email}</span>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <Calendar className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                  <span>Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                            {isAdmin && member.email !== session?.user?.email && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveMember(member.email)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+                              >
+                                <UserMinus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                      {adminMembers.map((member) => (
-                        <div
-                          key={member.email}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="relative">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                  )}
+
+                  {/* Regular Members */}
+                  {regularMembers.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                        <h3 className="text-xs sm:text-sm font-semibold">
+                          Members ({regularMembers.length})
+                        </h3>
+                      </div>
+                      <div className="space-y-2 sm:space-y-3">
+                        {regularMembers.map((member) => (
+                          <div
+                            key={member.email}
+                            className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-muted/50"
+                          >
+                            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
                                   {getInitials(member.name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="absolute -top-1 -right-1 h-5 w-5 bg-yellow-500 rounded-full flex items-center justify-center">
-                                <Crown className="h-2.5 w-2.5 text-white" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm font-medium truncate">{member.name || member.email}</p>
+                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                  <span className="truncate">{member.email}</span>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <Calendar className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                  <span>Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-medium">{member.name || member.email}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                <span>{member.email}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
-                              </div>
-                            </div>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveMember(member.email)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+                              >
+                                <UserMinus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              </Button>
+                            )}
                           </div>
-                          {isAdmin && member.email !== session?.user?.email && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveMember(member.email)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Regular Members */}
-                {regularMembers.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Users className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold">
-                        Members ({regularMembers.length})
-                      </h3>
-                    </div>
-                    <div className="space-y-3">
-                      {regularMembers.map((member) => (
-                        <div
-                          key={member.email}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                                {getInitials(member.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">{member.name || member.email}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                <span>{member.email}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveMember(member.email)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <DialogFooter className="flex justify-between items-center border-t pt-4">
+          <DialogFooter className="flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center border-t pt-3 sm:pt-4 gap-2 sm:gap-0">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setLeaveConfirmOpen(true)}
-              className="text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:bg-destructive/10 w-full sm:w-auto text-sm"
+              size="sm"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
               Leave Team
             </Button>
             <Button 
               type="button" 
               onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto text-sm"
+              size="sm"
             >
               Close
             </Button>
@@ -410,22 +417,22 @@ export function TeamMembersDialog({
       </Dialog>
 
       <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100%-2rem)] sm:max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">
+            <AlertDialogTitle className="text-destructive text-sm sm:text-base">
               Are you sure you want to leave this team?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-xs sm:text-sm">
               You will lose access to all team resources and will need to be invited again to rejoin.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto m-0">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleLeaveTeam} 
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground w-full sm:w-auto m-0"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Leave Team

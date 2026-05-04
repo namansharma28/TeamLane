@@ -3,86 +3,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { LoadingPage } from "@/components/ui/loading-page";
-import { TrendingUp, Activity, Target, Users, BarChart3 } from "lucide-react";
-
-interface DashboardData {
-  stats: {
-    tasks: {
-      total: number;
-      completed: number;
-      todo: number;
-      inProgress: number;
-      overdue: number;
-    };
-    notes: {
-      total: number;
-      updatedToday: number;
-    };
-    messages: {
-      total: number;
-      conversations: number;
-    };
-  };
-  overview: {
-    name: string;
-    completed: number;
-    inProgress: number;
-    pending: number;
-  }[];
-  recentActivity: {
-    id: string;
-    user: {
-      name: string;
-      avatar?: string;
-      initials: string;
-    };
-    action: string;
-    target: string;
-    time: string;
-    board: string;
-  }[];
-  boardStats: {
-    id: string;
-    title: string;
-    totalTasks: number;
-    completedTasks: number;
-  }[];
-  team: any;
-}
+import { TrendingUp, Activity, Target, BarChart3 } from "lucide-react";
+import { useTeam } from "@/lib/services/client";
+import { useSocket } from "@/hooks/useSocket";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/services/query-client";
 
 export default function DashboardPage() {
   const params = useParams();
   const teamId = params?.teamId as string;
-  const [teamData, setTeamData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  
+  const { data: teamData, isLoading: loading, error } = useTeam(teamId);
+  const { socket, EVENTS } = useSocket(teamId);
 
+  // Listen for task updates and invalidate team data to refetch
   useEffect(() => {
-    const fetchTeamData = async () => {
-      try {
-        const response = await fetch(`/api/teams/${teamId}/dashboard`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch team data');
-        }
-        const data = await response.json();
-        setTeamData(data);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
+    if (!socket) return;
+
+    const handleTaskUpdate = () => {
+      // Invalidate and refetch team data when any task is updated
+      queryClient.invalidateQueries({ queryKey: queryKeys.team.composite(teamId) });
     };
 
-    fetchTeamData();
-  }, [teamId]);
+    // Listen to all task-related events
+    socket.on(EVENTS.TASK_CREATED, handleTaskUpdate);
+    socket.on(EVENTS.TASK_UPDATED, handleTaskUpdate);
+    socket.on(EVENTS.TASK_DELETED, handleTaskUpdate);
+
+    return () => {
+      socket.off(EVENTS.TASK_CREATED, handleTaskUpdate);
+      socket.off(EVENTS.TASK_UPDATED, handleTaskUpdate);
+      socket.off(EVENTS.TASK_DELETED, handleTaskUpdate);
+    };
+  }, [socket, EVENTS, teamId, queryClient]);
 
   if (loading) return <LoadingPage />;
-  if (!teamData) return <div className="p-6 text-center text-muted-foreground">No dashboard data available.</div>;
+  if (error || !teamData) return <div className="p-6 text-center text-muted-foreground">No dashboard data available.</div>;
+
+  // Calculate overview data (last 7 days mock data - you can enhance this)
+  const overview = [
+    { name: 'Mon', completed: 5, inProgress: 3, pending: 2 },
+    { name: 'Tue', completed: 8, inProgress: 2, pending: 1 },
+    { name: 'Wed', completed: 6, inProgress: 4, pending: 3 },
+    { name: 'Thu', completed: 10, inProgress: 1, pending: 2 },
+    { name: 'Fri', completed: 7, inProgress: 3, pending: 1 },
+    { name: 'Sat', completed: 4, inProgress: 2, pending: 1 },
+    { name: 'Sun', completed: 3, inProgress: 1, pending: 2 }
+  ];
 
   return (
-    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6 mx-2">
       {/* Header */}
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -178,7 +151,7 @@ export default function DashboardPage() {
             <div>
               <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">Completion Trend (Last 7 Days)</h4>
               <div className="flex items-end h-16 sm:h-20 md:h-24 w-full gap-1 sm:gap-1.5 md:gap-2">
-                {teamData.overview.map((day, index) => (
+                {overview.map((day, index) => (
                   <div key={index} className="flex-1 flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2">
                     <div className="relative w-full flex justify-center">
                       <div 

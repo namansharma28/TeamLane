@@ -1,77 +1,41 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { TeamMembersDialog } from "@/components/TeamMembersDialog";
 import { Users, Crown, UserCheck, Calendar, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { LoadingPage } from '@/components/ui/loading-page';
-
-interface TeamMember {
-  email: string;
-  role: string;
-  joinedAt: string;
-  _id: string;
-  name?: string;
-  image?: string;
-}
-
-interface Team {
-  _id: string;
-  name: string;
-  members: TeamMember[];
-  code?: string;
-}
+import { useTeam } from "@/lib/services/client";
+import { useSession } from 'next-auth/react';
 
 export default function TeamPage() {
   const params = useParams();
   const teamId = params?.teamId as string;
-  const [team, setTeam] = useState<Team | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
+  
+  const { data: teamData, isLoading: loading, error } = useTeam(teamId);
+  const team = teamData?.team;
+  
   const [isTeamMembersOpen, setIsTeamMembersOpen] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchTeam = async () => {
-      if (!teamId) return;
-      
-      try {
-        const response = await fetch(`/api/teams/${teamId}/team`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch team data');
-        }
-        const data = await response.json();
-        setTeam(data);
-      } catch (error) {
-        console.error('Error:', error);
-        setError(error instanceof Error ? error.message : 'Something went wrong');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTeam();
-  }, [teamId]);
-
   if (!teamId) return <div>Invalid team ID</div>;
-  if (loading) return <div>
-    <LoadingPage />
-  </div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-  if (!team) return <div>Team not found</div>;
+  if (loading) return <LoadingPage />;
+  if (error || !team) return <div className="text-red-500">Error loading team data</div>;
   if (!team.members || team.members.length === 0) return <div>No members found</div>;
 
   const adminMembers = team.members.filter(member => member.role === 'admin');
   const regularMembers = team.members.filter(member => member.role === 'member');
+  const isAdmin = team.members.some(m => m.email === session?.user?.email && m.role === 'admin');
 
   const handleCopyCode = () => {
-    if (team?.code) {
-      navigator.clipboard.writeText(team.code);
+    const code = (team as any).code;
+    if (code) {
+      navigator.clipboard.writeText(code);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
     }
@@ -103,7 +67,7 @@ export default function TeamPage() {
       </div>
 
       {/* Team Join Code Section - Only for admins */}
-      {adminMembers.some(m => m.email === team.members.find(member => member.role === 'admin')?.email) && team.code && (
+      {isAdmin && (team as any).code && (
         <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -115,7 +79,7 @@ export default function TeamPage() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 bg-muted px-3 sm:px-4 py-2 rounded-lg">
                 <code className="text-base sm:text-lg font-mono font-bold tracking-wider">
-                  {showCode ? team.code : '••••••'}
+                  {showCode ? (team as any).code : '••••••'}
                 </code>
               </div>
               <Button
@@ -204,8 +168,8 @@ export default function TeamPage() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-              {adminMembers.map((member) => (
-                <Card key={member._id} className="hover:shadow-lg transition-shadow">
+              {adminMembers.map((member, index) => (
+                <Card key={member.email || index} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="flex flex-row items-center gap-2 sm:gap-3 md:gap-4 pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
                     <div className="relative">
                       <Avatar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16">
@@ -255,8 +219,8 @@ export default function TeamPage() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-              {regularMembers.map((member) => (
-                <Card key={member._id} className="hover:shadow-lg transition-shadow">
+              {regularMembers.map((member, index) => (
+                <Card key={member.email || index} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="flex flex-row items-center gap-2 sm:gap-3 md:gap-4 pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
                     <Avatar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16">
                       <AvatarImage 
@@ -297,7 +261,7 @@ export default function TeamPage() {
         open={isTeamMembersOpen}
         onOpenChange={setIsTeamMembersOpen}
         teamId={teamId}
-        teamCode={team.code}
+        teamCode={(team as any).code}
       />
     </div>
   );

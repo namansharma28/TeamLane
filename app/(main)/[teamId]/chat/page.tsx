@@ -52,6 +52,26 @@ export default function ChatPage() {
   const messageInputRef = useRef<HTMLInputElement>(null);
   const [isConnected, setIsConnected] = useState(false);
 
+  // Helper function to deduplicate messages
+  const deduplicateMessages = (msgs: MessageType[]): MessageType[] => {
+    const seen = new Set<string>();
+    const uniqueMessages: MessageType[] = [];
+    
+    for (const msg of msgs) {
+      // Create a unique identifier for each message
+      const identifier = msg._id.startsWith('temp-') 
+        ? `temp-${msg.content}-${msg.sender.email}-${msg.createdAt}`
+        : msg._id;
+      
+      if (!seen.has(identifier)) {
+        seen.add(identifier);
+        uniqueMessages.push(msg);
+      }
+    }
+    
+    return uniqueMessages;
+  };
+
   // Add keyboard shortcut to focus message input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -100,18 +120,45 @@ export default function ChatPage() {
       console.log("Received new message:", message);
       if (message.channel === currentChannel) {
         setMessages((prev) => {
-          // More thorough duplicate check
-          const exists = prev.some(m => 
-            m._id === message._id || // Check permanent ID
-            (m.content === message.content && // Or check content and timestamp
-             m.sender.email === message.sender.email &&
-             Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 1000)
-          );
-          if (exists) {
-            console.log("Duplicate message detected, skipping");
+          // Check if this message already exists by permanent ID
+          const existsByPermanentId = prev.some(m => m._id === message._id && !m._id.startsWith('temp-'));
+          
+          if (existsByPermanentId) {
+            console.log("Duplicate message detected (permanent ID exists), skipping");
             return prev;
           }
-          return [...prev, message];
+          
+          // Check if this is from the current user (might be optimistic update)
+          if (message.sender.email === session?.user?.email) {
+            // Find and replace temporary message with permanent one
+            const tempMessageIndex = prev.findIndex(m => 
+              m._id.startsWith('temp-') &&
+              m.content === message.content &&
+              m.sender.email === message.sender.email &&
+              Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 2000
+            );
+            
+            if (tempMessageIndex !== -1) {
+              console.log("Replacing temporary message with permanent one");
+              const newMessages = [...prev];
+              newMessages[tempMessageIndex] = message;
+              return deduplicateMessages(newMessages);
+            }
+          }
+          
+          // Check for duplicate by content and timestamp (for messages from others)
+          const duplicateByContent = prev.some(m => 
+            m.content === message.content &&
+            m.sender.email === message.sender.email &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 1000
+          );
+          
+          if (duplicateByContent) {
+            console.log("Duplicate message detected (content match), skipping");
+            return prev;
+          }
+          
+          return deduplicateMessages([...prev, message]);
         });
       }
     });
@@ -182,14 +229,18 @@ export default function ChatPage() {
 
     // Optimistically update UI
     setMessages(prev => {
-      // Check for duplicates before adding
+      // Check for duplicates before adding (by temp ID or content)
       const isDuplicate = prev.some(m => 
-        m.content === messageData.content &&
-        m.sender.email === messageData.sender.email &&
-        Math.abs(new Date(m.createdAt).getTime() - new Date(timestamp).getTime()) < 1000
+        m._id === tempId || // Check temp ID
+        (m.content === messageData.content &&
+         m.sender.email === messageData.sender.email &&
+         Math.abs(new Date(m.createdAt).getTime() - new Date(timestamp).getTime()) < 2000)
       );
-      if (isDuplicate) return prev;
-      return [...prev, messageData];
+      if (isDuplicate) {
+        console.log("Duplicate optimistic message, skipping");
+        return prev;
+      }
+      return deduplicateMessages([...prev, messageData]);
     });
 
     try {
@@ -214,19 +265,25 @@ export default function ChatPage() {
       const { data: savedMessage } = await response.json();
       
       // Update the temporary message with the permanent one
-      setMessages(prev => 
-        prev.map(msg => 
-          msg._id === tempId || // Match by temp ID
-          (msg.content === messageData.content && // Or match by content and timestamp
-           msg.sender.email === messageData.sender.email &&
-           Math.abs(new Date(msg.createdAt).getTime() - new Date(timestamp).getTime()) < 1000)
+      setMessages(prev => {
+        // Check if permanent message already exists
+        const permanentExists = prev.some(m => m._id === savedMessage._id && !m._id.startsWith('temp-'));
+        if (permanentExists) {
+          console.log("Permanent message already exists, removing temp only");
+          return deduplicateMessages(prev.filter(msg => msg._id !== tempId));
+        }
+        
+        // Replace temp message with permanent one
+        const updated = prev.map(msg => 
+          msg._id === tempId
             ? {
                 ...savedMessage,
                 replyTo: messageData.replyTo // Ensure replyTo is preserved
               }
             : msg
-        )
-      );
+        );
+        return deduplicateMessages(updated);
+      });
 
       // Only clear reply state after successful message send
       setReplyTo(null);
@@ -261,217 +318,363 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] p-2 sm:p-4 md:p-6 pt-0 gap-2 sm:gap-4 md:gap-6">
-
-      {/* Main Chat Layout */}
-      <div className="grid gap-2 sm:gap-4 md:gap-6 lg:grid-cols-4 flex-1 min-h-0">
-
-      {/* Header Card - Desktop only */}
-        <div className="lg:col-span-1">
-            <div className="bg-background rounded-xl shadow-lg border p-2 sm:p-3 md:p-4 my-1 sm:my-2 mb-2 sm:mb-3 flex-shrink-0 hidden lg:block">
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-                <div className="h-7 w-7 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="h-3.5 w-3.5 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary" />
+    <>
+      {/* MOBILE VIEW - Completely separate design */}
+      <div className="lg:hidden flex flex-col h-[calc(100dvh-14rem)] bg-background">
+        {/* Mobile Header - Compact */}
+        <div className="flex-shrink-0 border-b bg-card">
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Hash className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-base sm:text-2xl md:text-3xl font-bold tracking-tight">
+                  <h1 className="text-sm font-semibold">#{currentChannel}</h1>
+                  <div className="flex items-center gap-1">
+                    <div className={`h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {isConnected ? 'Connected' : 'Connecting...'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Channel Pills */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+              {channels.map((channel) => (
+                <button
+                  key={channel.id}
+                  onClick={() => setCurrentChannel(channel.id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    currentChannel === channel.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {channel.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-3 py-2">
+          <div className="space-y-3" ref={scrollAreaRef}>
+            {messages.map((msg) => {
+              const isOwn = msg.sender.email === session?.user?.email;
+              return (
+                <div
+                  key={msg._id}
+                  className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                  {/* Avatar */}
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={msg.sender.avatar || undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {msg.sender.initials}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Message Content */}
+                  <div className={`flex flex-col max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                    {/* Sender Name & Time */}
+                    <div className={`flex items-center gap-1.5 mb-0.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <span className="text-xs font-semibold">{msg.sender.name}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatMessageTime(msg.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Reply Preview */}
+                    {msg.replyTo && (
+                      <div className={`mb-1 p-2 border-l-2 border-primary bg-muted/50 rounded text-[10px] ${isOwn ? 'self-end' : 'self-start'} max-w-full`}>
+                        <div className="font-semibold">{msg.replyTo.senderName}</div>
+                        <div className="line-clamp-1 text-muted-foreground">{msg.replyTo.content}</div>
+                      </div>
+                    )}
+
+                    {/* Message Bubble */}
+                    <div
+                      className={`px-3 py-2 rounded-2xl text-sm break-words ${
+                        isOwn
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                          : 'bg-muted rounded-tl-sm'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+
+                    {/* Reply Button */}
+                    <button
+                      onClick={() => setReplyTo(msg)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground mt-0.5 px-1"
+                    >
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Reply Preview Bar */}
+        {replyTo && (
+          <div className="flex-shrink-0 px-3 py-2 border-t bg-muted/30">
+            <div className="flex items-start justify-between gap-2 p-2 bg-background border-l-2 border-primary rounded">
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] text-muted-foreground">
+                  Replying to <span className="font-semibold">{replyTo.sender.name}</span>
+                </div>
+                <div className="text-xs truncate">{replyTo.content}</div>
+              </div>
+              <button
+                onClick={() => setReplyTo(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <span className="text-lg leading-none">&times;</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="flex-shrink-0 p-3 border-t bg-card">
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <Input
+              ref={messageInputRef}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 h-10 text-sm"
+              disabled={!isConnected}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0"
+              disabled={!newMessage.trim() || !isConnected}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      {/* DESKTOP VIEW - Original design preserved */}
+      <div className="hidden lg:flex flex-col h-[calc(100vh-12rem)] p-6 pt-0 gap-6">
+        {/* Main Chat Layout */}
+        <div className="grid gap-6 lg:grid-cols-4 flex-1 min-h-0">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            {/* Header Card */}
+            <div className="bg-background rounded-xl shadow-lg border p-4 my-2 mb-3 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">
                     Team Chat
                   </h1>
-                  <p className="text-muted-foreground text-xs sm:text-sm md:text-base hidden sm:block">
+                  <p className="text-muted-foreground text-base">
                     Communicate with your team in real-time
                   </p>
                 </div>
               </div>
             </div>
 
-        {/* Channel Sidebar */}
-          <Card className="shadow-lg h-max">
-            <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-4 md:p-6">
-              <CardTitle className="text-sm sm:text-base md:text-lg">Channels</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 sm:space-y-2 p-2 sm:p-4 md:p-6 pt-0">
-              <div className="flex lg:flex-col gap-1 sm:gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
-                {channels.map((channel) => (
-                  <Button
-                    key={channel.id}
-                    variant={currentChannel === channel.id ? "default" : "ghost"}
-                    className="justify-start text-xs sm:text-sm whitespace-nowrap lg:w-full h-7 sm:h-8 md:h-9 px-2 sm:px-3 md:px-4"
-                    onClick={() => setCurrentChannel(channel.id)}
-                  >
-                    {channel.icon}
-                    <span className="ml-1 sm:ml-2">{channel.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Chat Area */}
-        <div className="lg:col-span-3 flex flex-col min-h-0">
-          <Card className="shadow-xl flex flex-col h-full">
-            <CardHeader className="border-b flex-shrink-0 p-2 sm:p-4 md:p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Hash className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm sm:text-lg md:text-xl">
-                      #{currentChannel}
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm hidden sm:block">
-                      Channel for {currentChannel} team discussion
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {isConnected ? (
-                    <div className="flex items-center gap-1 sm:gap-2 text-green-600 dark:text-green-400">
-                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-[10px] sm:text-xs font-medium">Connected</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 sm:gap-2 text-red-600 dark:text-red-400">
-                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500 rounded-full"></div>
-                      <span className="text-[10px] sm:text-xs font-medium">Connecting...</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="text-[10px] sm:text-xs mt-1 sm:mt-2 text-muted-foreground bg-muted px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block hidden md:block">
-                Press <kbd className="px-1 py-0.5 text-xs rounded border bg-background font-mono">Alt+M</kbd> to quickly focus the message input
-              </div>
-            </CardHeader>
-            
-            {/* Messages Area - Scrollable */}
-            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
-              <ScrollArea className="flex-1 p-2 sm:p-4 md:p-6">
-                <div className="space-y-3 sm:space-y-4 md:space-y-6" ref={scrollAreaRef}>
-                  {messages.map((msg) => (
-                    <div
-                      key={msg._id}
-                      className={`flex items-start gap-2 sm:gap-3 md:gap-4 ${
-                        msg.sender.email === session?.user?.email
-                          ? "justify-end"
-                          : ""
-                      }`}
+            {/* Channel Sidebar */}
+            <Card className="shadow-lg h-max">
+              <CardHeader className="pb-3 p-6">
+                <CardTitle className="text-lg">Channels</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-6 pt-0">
+                <div className="flex flex-col gap-2">
+                  {channels.map((channel) => (
+                    <Button
+                      key={channel.id}
+                      variant={currentChannel === channel.id ? "default" : "ghost"}
+                      className="justify-start text-sm w-full h-9 px-4"
+                      onClick={() => setCurrentChannel(channel.id)}
                     >
-                      {msg.sender.email !== session?.user?.email && (
-                        <Avatar className="border-2 h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10">
-                          <AvatarImage src={msg.sender.avatar || undefined} />
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
-                            {msg.sender.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div className={`grid gap-1 sm:gap-1.5 md:gap-2 max-w-[75%] sm:max-w-[70%] ${
-                        msg.sender.email === session?.user?.email ? 'text-right' : ''
-                      }`}>
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <div className="font-semibold text-xs sm:text-sm">
-                            {msg.sender.name}
-                          </div>
-                          <div className="text-[10px] sm:text-xs text-muted-foreground">
-                            {formatMessageTime(msg.createdAt)}
-                          </div>
-                        </div>
-                        
-                        {/* Reply content if exists */}
-                        {msg.replyTo && (
-                          <div className="mb-1 sm:mb-2 p-2 sm:p-3 border-l-4 border-primary bg-muted rounded-r text-[10px] sm:text-xs text-left">
-                            <span className="font-semibold">
-                              {msg.replyTo.senderName}:
-                            </span> {msg.replyTo.content}
-                          </div>
+                      {channel.icon}
+                      <span className="ml-2">{channel.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Chat Area */}
+          <div className="lg:col-span-3 flex flex-col min-h-0">
+            <Card className="shadow-xl flex flex-col h-full">
+              {/* Header */}
+              <CardHeader className="border-b flex-shrink-0 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Hash className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">#{currentChannel}</CardTitle>
+                      <CardDescription className="text-sm">
+                        Channel for {currentChannel} team discussion
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isConnected ? (
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium">Connected</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                        <span className="text-xs font-medium">Connecting...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full w-fit mt-2">
+                  Press <kbd className="px-1.5 py-0.5 text-xs rounded border bg-background font-mono">Alt+M</kbd> to quickly focus the message input
+                </div>
+              </CardHeader>
+
+              {/* Messages Area */}
+              <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+                <ScrollArea className="flex-1 p-6">
+                  <div className="space-y-4" ref={scrollAreaRef}>
+                    {messages.map((msg) => (
+                      <div
+                        key={msg._id}
+                        className={`flex items-start gap-3 ${
+                          msg.sender.email === session?.user?.email
+                            ? "justify-end"
+                            : ""
+                        }`}
+                      >
+                        {msg.sender.email !== session?.user?.email && (
+                          <Avatar className="border-2 h-10 w-10 flex-shrink-0">
+                            <AvatarImage src={msg.sender.avatar || undefined} />
+                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                              {msg.sender.initials}
+                            </AvatarFallback>
+                          </Avatar>
                         )}
-                        
-                        {/* Actual message */}
-                        <div className={`px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-2xl shadow-sm text-xs sm:text-sm ${
-                          msg.sender.email === session?.user?.email 
-                            ? 'bg-primary text-primary-foreground ml-auto'
-                            : 'bg-muted border'
+                        <div className={`grid gap-1 max-w-[70%] ${
+                          msg.sender.email === session?.user?.email ? 'text-right' : ''
                         }`}>
-                          {msg.content}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="font-semibold text-sm">
+                              {msg.sender.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatMessageTime(msg.createdAt)}
+                            </div>
+                          </div>
+
+                          {/* Reply content if exists */}
+                          {msg.replyTo && (
+                            <div className="mb-1 p-3 border-l-4 border-primary bg-muted rounded-r text-xs text-left">
+                              <span className="font-semibold">
+                                {msg.replyTo.senderName}:
+                              </span> <span className="line-clamp-2">{msg.replyTo.content}</span>
+                            </div>
+                          )}
+
+                          {/* Actual message */}
+                          <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm break-words ${
+                            msg.sender.email === session?.user?.email 
+                              ? 'bg-primary text-primary-foreground ml-auto'
+                              : 'bg-muted border'
+                          }`}>
+                            {msg.content}
+                          </div>
+
+                          {/* Reply button */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs self-start h-7 px-3"
+                            onClick={() => setReplyTo(msg)}
+                          >
+                            Reply
+                          </Button>
                         </div>
-                        
-                        {/* Reply button */}
+
+                        {msg.sender.email === session?.user?.email && (
+                          <Avatar className="border-2 h-10 w-10 flex-shrink-0">
+                            <AvatarImage src={msg.sender.avatar || undefined} />
+                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                              {msg.sender.initials}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                {/* Reply Preview */}
+                {replyTo && (
+                  <div className="px-6 py-3 border-t bg-muted/50">
+                    <div className="p-3 border-l-4 border-primary bg-background rounded-r relative">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="pr-8 max-w-full flex-1 min-w-0">
+                          <div className="text-xs text-muted-foreground mb-1">
+                            Replying to <b>{replyTo.sender.name || replyTo.sender.email}</b>
+                          </div>
+                          <div className="text-sm truncate">{replyTo.content}</div>
+                        </div>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-[10px] sm:text-xs self-start h-6 sm:h-7 px-2 sm:px-3"
-                          onClick={() => setReplyTo(msg)}
+                          className="absolute top-1 right-1 h-6 w-6 p-0 text-lg hover:bg-transparent"
+                          onClick={() => setReplyTo(null)}
                         >
-                          Reply
+                          &times;
                         </Button>
                       </div>
-                      
-                      {msg.sender.email === session?.user?.email && (
-                        <Avatar className="border-2 h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10">
-                          <AvatarImage src={msg.sender.avatar || undefined} />
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
-                            {msg.sender.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              
-              {/* Reply Preview - Fixed above input */}
-              {replyTo && (
-                <div className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 border-t bg-muted/50">
-                  <div className="p-2 sm:p-3 border-l-4 border-primary bg-background rounded-r relative">
-                    <div className="flex justify-between items-start">
-                      <div className="pr-8 sm:pr-10 max-w-full">
-                        <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">
-                          Replying to <b>{replyTo.sender.name || replyTo.sender.email}</b>
-                        </div>
-                        <div className="text-xs sm:text-sm truncate">{replyTo.content}</div>
+                  </div>
+                )}
+
+                {/* Message Input */}
+                <div className="p-6 border-t bg-muted/30 flex-shrink-0">
+                  <form onSubmit={handleSendMessage} className="flex gap-3">
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Type your message..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        ref={messageInputRef}
+                        className="pr-16 text-sm h-10"
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded border">
+                        Alt+M
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="absolute top-0.5 sm:top-1 right-0.5 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 text-base sm:text-lg"
-                        onClick={() => setReplyTo(null)}
-                      >
-                        &times;
-                      </Button>
                     </div>
-                  </div>
+                    <Button 
+                      type="submit" 
+                      size="icon" 
+                      disabled={!newMessage.trim() || !isConnected}
+                      className="h-10 w-10 flex-shrink-0"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
                 </div>
-              )}
-              
-              {/* Message Input - Fixed at bottom */}
-              <div className="p-2 sm:p-4 md:p-6 border-t bg-muted/30 flex-shrink-0">
-                <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="Type your message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      ref={messageInputRef}
-                      className="pr-12 sm:pr-16 text-xs sm:text-sm h-8 sm:h-9 md:h-10"
-                    />
-                    <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-[10px] sm:text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border hidden md:block">
-                      Alt+M
-                    </div>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={!newMessage.trim() || !isConnected}
-                    className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
-                  >
-                    <Send className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

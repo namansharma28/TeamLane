@@ -512,7 +512,7 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Task</DialogTitle>
             <DialogDescription>
@@ -520,10 +520,10 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteTask}>
+            <Button variant="destructive" onClick={handleDeleteTask} className="w-full sm:w-auto">
               Delete
             </Button>
           </DialogFooter>
@@ -532,7 +532,7 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
 
       {/* Change Priority Dialog */}
       <Dialog open={priorityDialogOpen} onOpenChange={setPriorityDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Change Priority</DialogTitle>
             <DialogDescription>
@@ -555,10 +555,10 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPriorityDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setPriorityDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleChangePriority}>
+            <Button onClick={handleChangePriority} className="w-full sm:w-auto">
               Save
             </Button>
           </DialogFooter>
@@ -567,7 +567,7 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
 
       {/* Change Deadline Dialog */}
       <Dialog open={deadlineDialogOpen} onOpenChange={setDeadlineDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Set Deadline</DialogTitle>
             <DialogDescription>
@@ -599,10 +599,10 @@ export function TaskList({ tasks, onTaskUpdate, onTaskDelete, activeTab, isAdmin
             </Popover>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeadlineDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDeadlineDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleChangeDeadline}>
+            <Button onClick={handleChangeDeadline} className="w-full sm:w-auto">
               Save
             </Button>
           </DialogFooter>

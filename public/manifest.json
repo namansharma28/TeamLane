@@ -1,1 +1,26 @@
-{"name":"TeamLane","short_name":"TeamLane","description":"Collaborate with your team, all in one space.","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#6f42c1","icons":[{"src":"/teamlane-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/teamlane-512x512.png","sizes":"512x512","type":"image/png"}]} 
+{
+  "name": "TeamLane",
+  "short_name": "TeamLane",
+  "description": "Collaborate with your team, all in one space.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6f42c1",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "business", "collaboration"],
+  "icons": [
+    {
+      "src": "/teamlane-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/teamlane-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+} 

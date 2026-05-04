@@ -2,18 +2,15 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BoardHeader } from "@/components/boards/board-header";
 import { BoardProps } from "@/components/boards/boards-list";
 import { TaskList } from "@/components/boards/task-list";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { CreateTaskDialog } from "@/components/boards/create-task-dialog";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "react-hot-toast";
 import { KanbanBoard } from '@/components/boards/kanban-board';
-import { LoadingPage } from "@/components/ui/loading-page";
+import { BoardSkeleton } from '@/components/boards/board-skeleton';
 import { Task } from "@/lib/models/task";
 
 export default function BoardPage() {
@@ -43,92 +40,39 @@ export default function BoardPage() {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [viewMode, setViewMode] = useState<'board' | 'list' | null>(null);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
-  // Function to fetch board and tasks
+  // Optimized: Single API call to fetch both board and tasks
   const fetchBoardAndTasks = async () => {
     try {
       if (!session?.user?.email) {
-        console.log('No session found, waiting for session...');
         return;
       }
 
       setLoading(true);
-      console.log('Fetching board with session:', session.user.email);
       
-      // Fetch board details
-      const boardResponse = await fetch(`/api/teams/${teamId}/boards/${boardId}`, {
+      // Single composite API call instead of two separate calls
+      const response = await fetch(`/api/teams/${teamId}/boards/${boardId}/composite`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       
-      if (!boardResponse.ok) {
-        const errorData = await boardResponse.json();
-        console.error('Board fetch error:', {
-          status: boardResponse.status,
-          statusText: boardResponse.statusText,
-          error: errorData,
-          url: `/api/teams/${teamId}/boards/${boardId}`
-        });
-        
-        // Show more specific error message
-        let errorMessage = 'Failed to load board';
-        if (boardResponse.status === 404) {
-          if (errorData.details) {
-            errorMessage = `Board not found in this team. Board belongs to team ${errorData.details.boardTeamId} but you're trying to access it from team ${errorData.details.requestedTeamId}`;
-          } else {
-            errorMessage = 'Board not found. It may have been deleted or you may not have access.';
-          }
-        } else if (boardResponse.status === 401) {
-          errorMessage = 'Please sign in to view this board';
-        } else if (boardResponse.status === 403) {
-          errorMessage = 'You do not have permission to view this board';
-        }
-        
-        throw new Error(errorData.error || errorMessage);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load board data');
       }
       
-      const boardData = await boardResponse.json();
-      console.log('Board data received:', boardData);
+      const data = await response.json();
       
-      if (!boardData.board) {
-        throw new Error('Invalid board data received from server');
-      }
-      
-      setBoard(boardData.board);
-      
-      // Check if user is admin (simplified - in a real app you'd check against team roles)
-      setIsAdmin(boardData.board.createdBy?.email === session.user.email);
-      
-      // Fetch tasks
-      const tasksResponse = await fetch(`/api/teams/${teamId}/boards/${boardId}/tasks`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!tasksResponse.ok) {
-        const errorData = await tasksResponse.json();
-        console.error('Tasks fetch error:', {
-          status: tasksResponse.status,
-          statusText: tasksResponse.statusText,
-          error: errorData
-        });
-        throw new Error(errorData.error || `Failed to fetch tasks (${tasksResponse.status})`);
-      }
-      
-      const tasksData = await tasksResponse.json();
-      setTasks(tasksData.tasks);
+      // Set all data at once
+      setBoard(data.board);
+      setTasks(data.tasks);
+      setIsAdmin(data.isAdmin);
     } catch (error) {
       console.error('Error in fetchBoardAndTasks:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load board data",
-        variant: "destructive"
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to load board data");
     } finally {
       setLoading(false);
     }
@@ -144,31 +88,14 @@ export default function BoardPage() {
   // Setup keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Alt+N to create a new task
       if (e.altKey && e.key === 'n') {
         e.preventDefault();
         setCreateTaskOpen(true);
       }
       
-      // Alt+V to toggle between board and list views
       if (e.altKey && e.key === 'v') {
         e.preventDefault();
-        handleToggleView(viewMode === 'board' ? 'list' : 'board');
-      }
-      
-      // Alt+1-4 to switch between task filters
-      if (e.altKey && e.key === '1') {
-        e.preventDefault();
-        setActiveTab('all');
-      } else if (e.altKey && e.key === '2') {
-        e.preventDefault();
-        setActiveTab('todo');
-      } else if (e.altKey && e.key === '3') {
-        e.preventDefault();
-        setActiveTab('in-progress');
-      } else if (e.altKey && e.key === '4') {
-        e.preventDefault();
-        setActiveTab('done');
+        setViewMode(viewMode === 'board' ? 'list' : 'board');
       }
     };
     
@@ -180,10 +107,8 @@ export default function BoardPage() {
   useEffect(() => {
     if (!socket) return;
 
-    // Handle new task created by another user
     const handleTaskCreated = (data: { task: Task, boardId: string }) => {
       if (data.boardId === boardId) {
-        // Make sure we don't duplicate tasks
         setTasks(current => {
           if (current.some(task => task._id === data.task._id)) {
             return current;
@@ -191,57 +116,46 @@ export default function BoardPage() {
           return [...current, data.task];
         });
         
-        toast({
-          title: "New Task Added",
-          description: `${data.task.createdBy?.name || 'Someone'} added a new task: ${data.task.title}`,
-        });
+        if (data.task.createdBy?.email !== session?.user?.email) {
+          toast.success(`${data.task.createdBy?.name || 'Someone'} added: ${data.task.title}`);
+        }
       }
     };
 
-    // Handle task updated by another user
     const handleTaskUpdated = (data: { task: Task, boardId: string }) => {
       if (data.boardId === boardId) {
+        // Update task in state (this will update other clients and sync current client with server)
         setTasks(current => 
           current.map(task => task._id === data.task._id ? data.task : task)
         );
         
-        // Show toast notification
-        if (data.task.updatedBy?.email !== session?.user?.email) {
-          toast({
-            title: "Task Updated",
-            description: `${data.task.updatedBy?.name || 'Someone'} updated a task: ${data.task.title}`,
-          });
+        // Only show toast for updates from other users
+        const isOwnUpdate = data.task.updatedBy?.email === session?.user?.email;
+        if (!isOwnUpdate) {
+          toast.success(`${data.task.updatedBy?.name || 'Someone'} updated: ${data.task.title}`);
         }
       }
     };
 
-    // Handle task deleted by another user
     const handleTaskDeleted = (data: { taskId: string, boardId: string, task: Task }) => {
       if (data.boardId === boardId) {
         setTasks(current => current.filter(task => task._id !== data.taskId));
         
-        // Show toast notification
         if (data.task.updatedBy?.email !== session?.user?.email) {
-          toast({
-            title: "Task Deleted",
-            description: `A task was removed: ${data.task.title}`,
-          });
+          toast.success(`Task removed: ${data.task.title}`);
         }
       }
     };
 
-    // Handle board updates
     const handleBoardUpdated = (data: { board: BoardProps }) => {
       setBoard(data.board);
     };
 
-    // Register event listeners
     socket.on(EVENTS.TASK_CREATED, handleTaskCreated);
     socket.on(EVENTS.TASK_UPDATED, handleTaskUpdated);
     socket.on(EVENTS.TASK_DELETED, handleTaskDeleted);
     socket.on(EVENTS.BOARD_UPDATED, handleBoardUpdated);
 
-    // Cleanup
     return () => {
       socket.off(EVENTS.TASK_CREATED, handleTaskCreated);
       socket.off(EVENTS.TASK_UPDATED, handleTaskUpdated);
@@ -250,22 +164,32 @@ export default function BoardPage() {
     };
   }, [socket, boardId, EVENTS, session?.user?.email]);
 
-  // Fetch team settings for defaultBoardView
+  // Load view preference
   useEffect(() => {
-    const fetchDefaultView = async () => {
-      if (!teamId) return;
-      // Check localStorage first
-      const saved = typeof window !== 'undefined' && localStorage.getItem(`boardView_${teamId}`);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`boardView_${teamId}`);
       if (saved === 'board' || saved === 'list') {
         setViewMode(saved);
-        return;
       }
-      
-      // Default to board view if no preference is saved
-      setViewMode('board');
-    };
-    fetchDefaultView();
+    }
   }, [teamId]);
+
+  // Recalculate board stats when tasks change
+  useEffect(() => {
+    if (board && tasks.length > 0) {
+      const completedCount = tasks.filter(task => task.status === 'done').length;
+      const totalCount = tasks.length;
+      
+      // Only update if stats have changed
+      if (board.completedTasks !== completedCount || board.totalTasks !== totalCount) {
+        setBoard(prev => prev ? {
+          ...prev,
+          completedTasks: completedCount,
+          totalTasks: totalCount
+        } : null);
+      }
+    }
+  }, [tasks, board]);
 
   const handleCreateTask = async (newTask: Omit<Task, '_id' | 'createdAt'>) => {
     try {
@@ -283,63 +207,75 @@ export default function BoardPage() {
       }
       
       const data = await response.json();
-      
-      // Update local state (the socket event will handle real-time updates for other users)
       setTasks([...tasks, data.task]);
       setCreateTaskOpen(false);
+      toast.success('Task created successfully');
     } catch (error) {
       console.error('Error creating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create task",
-        variant: "destructive"
+      toast.error("Failed to create task");
+    }
+  };
+
+  const handleTaskUpdate = async (taskId: string, updatedTask: Partial<Task>) => {
+    // Optimistic update - update UI immediately
+    const previousTasks = tasks;
+    setTasks(current => 
+      current.map(task => 
+        task._id === taskId 
+          ? { ...task, ...updatedTask } 
+          : task
+      )
+    );
+
+    // Make API call to persist the change
+    try {
+      const response = await fetch(`/api/teams/${teamId}/boards/${boardId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedTask),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update task');
+      }
+
+      // Socket event will update other clients
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+      
+      // Revert optimistic update on error
+      setTasks(previousTasks);
     }
   };
 
-  const handleTaskUpdate = (taskId: string, updatedTask: Partial<Task>) => {
-    // Update local state immediately for better UX
-    setTasks(tasks.map(task => 
-      task._id === taskId 
-        ? { ...task, ...updatedTask } 
-        : task
-    ));
-    
-    // Update board stats if necessary
-    if (board && updatedTask.status) {
-      const taskStatusChanged = tasks.find(t => t._id === taskId)?.status !== updatedTask.status;
-      if (taskStatusChanged) {
-        const updatedBoard = { ...board };
-        
-        // Update completed count if status changes to/from "done"
-        if (updatedTask.status === "done") {
-          updatedBoard.completedTasks = (updatedBoard.completedTasks || 0) + 1;
-        } else if (tasks.find(t => t._id === taskId)?.status === "done") {
-          updatedBoard.completedTasks = Math.max(0, (updatedBoard.completedTasks || 0) - 1);
-        }
-        
-        setBoard(updatedBoard);
-      }
-    }
-  };
+  const handleTaskDelete = async (taskId: string) => {
+    // Optimistic update - remove from UI immediately
+    const previousTasks = tasks;
+    setTasks(current => current.filter(task => task._id !== taskId));
 
-  const handleTaskDelete = (taskId: string) => {
-    // Update local state immediately for better UX
-    const deletedTask = tasks.find(task => task._id === taskId);
-    
-    // Remove task from state
-    setTasks(tasks.filter(task => task._id !== taskId));
-    
-    // Update board stats
-    if (board && deletedTask) {
-      const updatedBoard = { ...board };
-      updatedBoard.totalTasks = Math.max(0, (updatedBoard.totalTasks || 0) - 1);
-      
-      if (deletedTask.status === "done") {
-        updatedBoard.completedTasks = Math.max(0, (updatedBoard.completedTasks || 0) - 1);
+    // Make API call to persist the deletion
+    try {
+      const response = await fetch(`/api/teams/${teamId}/boards/${boardId}/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete task');
       }
+
+      toast.success('Task deleted successfully');
+      // Socket event will update other clients
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
       
-      setBoard(updatedBoard);
+      // Revert optimistic update on error
+      setTasks(previousTasks);
     }
   };
 
@@ -347,7 +283,6 @@ export default function BoardPage() {
     ? tasks 
     : tasks.filter(task => task.status === activeTab);
 
-  // Add toggle handler
   const handleToggleView = (mode: 'board' | 'list') => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
@@ -355,78 +290,55 @@ export default function BoardPage() {
     }
   };
 
-  if (loading) return <div>
-    <LoadingPage />
-  </div>;
-  if (!board) return <div>Board not found</div>;
-  if (!viewMode) return <div>Loading board view...</div>;
+  if (loading) return <BoardSkeleton />;
+  if (!board) return <div className="p-6 text-center text-muted-foreground">Board not found</div>;
 
   return (
-    <div className="flex flex-col space-y-6 bg-gradient-to-br from-purple-50/30 via-transparent to-indigo-50/30 dark:from-purple-950/20 dark:via-transparent dark:to-indigo-950/20 min-h-screen relative">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
+    <div className="flex flex-col space-y-4 sm:space-y-6 min-h-screen p-3 sm:p-4 md:p-6 pt-0">
+      {/* Compact Board Header with Merged Controls */}
+      <BoardHeader 
+        board={{
+          ...board,
+          tasks: tasks // Pass the current tasks array for progress calculation
+        }} 
+        isAdmin={isAdmin}
+        viewMode={viewMode}
+        onViewModeChange={handleToggleView}
+        onUpdate={(updatedBoard) => setBoard(updatedBoard)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onAddTask={() => setCreateTaskOpen(true)}
+      />
+
+      {/* Main Content */}
+      <div className="bg-background rounded-xl shadow-lg border p-3 sm:p-4 md:p-6">
+        {viewMode === 'board' ? (
+          <KanbanBoard 
+            tasks={tasks}
+            onTaskUpdate={handleTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            activeTab={activeTab}
+            isAdmin={isAdmin}
+          />
+        ) : (
+          <TaskList 
+            tasks={filteredTasks}
+            onTaskUpdate={handleTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            activeTab={activeTab}
+            isAdmin={isAdmin}
+          />
+        )}
       </div>
 
-      <div className="relative z-10">
-        <BoardHeader 
-          board={board} 
-          isAdmin={isAdmin}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onUpdate={(updatedBoard) => setBoard(updatedBoard)}
-        />
-
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            {viewMode === 'list' && (
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                <TabsList className="w-full sm:w-auto grid grid-cols-4 sm:flex bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border border-purple-200/50 dark:border-purple-800/50">
-                  <TabsTrigger value="all" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white">All Tasks</TabsTrigger>
-                  <TabsTrigger value="todo" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white">To Do</TabsTrigger>
-                  <TabsTrigger value="in-progress" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white">In Progress</TabsTrigger>
-                  <TabsTrigger value="done" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white">Done</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
-
-            <Button 
-              onClick={() => setCreateTaskOpen(true)}
-              className={`${viewMode === 'list' ? 'w-full sm:w-auto' : 'ml-auto'} bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105`}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Task
-            </Button>
-          </div>
-
-          {viewMode === 'board' ? (
-            <KanbanBoard 
-              tasks={tasks}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              activeTab={activeTab}
-              isAdmin={isAdmin}
-            />
-          ) : (
-            <TaskList 
-              tasks={tasks}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              activeTab={activeTab}
-              isAdmin={isAdmin}
-            />
-          )}
-        </div>
-
-        <CreateTaskDialog
-          open={createTaskOpen}
-          onOpenChange={setCreateTaskOpen}
-          onCreateTask={handleCreateTask}
-          boardId={boardId}
-          teamId={teamId}
-        />
-      </div>
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        open={createTaskOpen}
+        onOpenChange={setCreateTaskOpen}
+        onCreateTask={handleCreateTask}
+        boardId={boardId}
+        teamId={teamId}
+      />
     </div>
   );
 }

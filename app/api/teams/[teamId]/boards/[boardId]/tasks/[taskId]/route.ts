@@ -39,7 +39,7 @@ export async function GET(
     // Fetch the specific task
     const task = await db.collection("tasks").findOne({
       _id: new ObjectId(params.taskId),
-      boardId: params.boardId
+      boardId: params.boardId // String comparison
     });
 
     if (!task) {
@@ -88,7 +88,7 @@ export async function PATCH(
     // Get the existing task for status tracking
     const existingTask = await db.collection("tasks").findOne({
       _id: new ObjectId(params.taskId),
-      boardId: params.boardId
+      boardId: params.boardId // String comparison
     });
 
     if (!existingTask) {
@@ -98,12 +98,15 @@ export async function PATCH(
     // Get update data from request
     const updateData = await request.json();
     
+    // Remove immutable fields that shouldn't be updated
+    const { _id, createdAt, createdBy, boardId, ...safeUpdateData } = updateData;
+    
     // Update the task
     const result = await db.collection("tasks").updateOne(
-      { _id: new ObjectId(params.taskId), boardId: params.boardId },
+      { _id: new ObjectId(params.taskId), boardId: params.boardId }, // String comparison
       { 
         $set: {
-          ...updateData,
+          ...safeUpdateData,
           updatedAt: new Date().toISOString(),
           updatedBy: {
             email: session.user.email,
@@ -121,19 +124,19 @@ export async function PATCH(
     let boardUpdated = false;
 
     // Update board completion stats if status changed
-    if (updateData.status && updateData.status !== existingTask.status) {
+    if (safeUpdateData.status && safeUpdateData.status !== existingTask.status) {
       boardUpdated = true;
       // Task was moved to "done"
-      if (updateData.status === "done") {
+      if (safeUpdateData.status === "done") {
         await db.collection("boards").updateOne(
-          { _id: new ObjectId(params.boardId) },
+          { _id: new ObjectId(params.boardId) }, // Use ObjectId for boards collection
           { $inc: { completedTasks: 1 } }
         );
       }
       // Task was moved from "done"
       else if (existingTask.status === "done") {
         await db.collection("boards").updateOne(
-          { _id: new ObjectId(params.boardId) },
+          { _id: new ObjectId(params.boardId) }, // Use ObjectId for boards collection
           { $inc: { completedTasks: -1 } }
         );
       }
@@ -218,7 +221,7 @@ export async function DELETE(
     // Get the task to check its status
     const task = await db.collection("tasks").findOne({
       _id: new ObjectId(params.taskId),
-      boardId: params.boardId
+      boardId: params.boardId // String comparison
     });
 
     if (!task) {
@@ -234,7 +237,7 @@ export async function DELETE(
     // Delete the task
     const result = await db.collection("tasks").deleteOne({
       _id: new ObjectId(params.taskId),
-      boardId: params.boardId
+      boardId: params.boardId // String comparison
     });
 
     if (result.deletedCount === 0) {

@@ -1,14 +1,20 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { NextAuthProvider } from '@/components/providers';
+import { Providers } from '@/components/providers';
 import { Toaster as HotToaster } from "react-hot-toast";
 import { ToastProvider } from '@/components/ui/use-toast';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '700'] });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
 
 export const metadata = {
   title: "TeamLane – All-in-One Collaborative Workspace",
@@ -40,18 +46,22 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6f42c1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TeamLane" />
+        <link rel="apple-touch-icon" href="/teamlane-192x192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="google-site-verification" content="4qgP4ffjaHbqpkY0w9tzvZ6_jN0X-Y39XxCuL2kztgY" />
       </head>
       <body className={inter.className}>
-        <NextAuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-            <ToastProvider>
-              {children}
-              <Toaster />
-              <HotToaster position="top-center" />
-            </ToastProvider>
-          </ThemeProvider>
-        </NextAuthProvider>
+        <Providers>
+          <ToastProvider>
+            {children}
+            <Toaster />
+            <HotToaster position="top-center" />
+            <PWAInstallPrompt />
+          </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

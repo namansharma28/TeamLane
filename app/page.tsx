@@ -135,7 +135,9 @@ export default function LandingPage() {
             </nav>
             
             <div className="flex items-center gap-2">
-              <AppSwitcher />
+              <div className="hidden md:block">
+                <AppSwitcher />
+              </div>
               <ThemeToggle />
               <Button onClick={handleGetStarted}>
                 <span className="hidden sm:inline">{isAuthenticated ? 'Go to Teams' : 'Get Started'}</span>
@@ -161,12 +163,42 @@ export default function LandingPage() {
         {isMenuOpen && (
           <div className="md:hidden border-t">
             <div className="py-4 px-4 space-y-4">
-              <Link href="#features" className="block px-2 py-1 hover:bg-accent rounded-md">
+              <Link href="#features" className="block px-2 py-1 hover:bg-accent rounded-md" onClick={() => setIsMenuOpen(false)}>
                 Features
               </Link>
+              
+              {/* App Switcher Section */}
+              <div className="border-t pt-4 mt-4">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Switch Application
+                </div>
+                <a 
+                  href={process.env.NODE_ENV === 'production' ? 'https://gravitas.grafene.in' : 'http://localhost:3000'}
+                  className="flex items-center gap-3 px-2 py-2 hover:bg-accent rounded-md"
+                >
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">Gravitas</div>
+                    <div className="text-xs text-muted-foreground">Communities & Events</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </a>
+                <a 
+                  href={process.env.NODE_ENV === 'production' ? 'https://teamlane.grafene.in' : 'http://localhost:3001'}
+                  className="flex items-center gap-3 px-2 py-2 hover:bg-accent rounded-md"
+                >
+                  <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">TeamLane</div>
+                    <div className="text-xs text-muted-foreground">Team Collaboration</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </a>
+              </div>
+              
               {isAuthenticated ? (
                 <>
-                  <div className="border-t pt-2 mt-2 flex flex-col space-y-2">
+                  <div className="border-t pt-4 mt-4 flex flex-col space-y-2">
                     <span className="text-sm text-muted-foreground px-2">{session?.user?.email}</span>
                     <Button variant="outline" size="sm" onClick={handleLogout}>
                       Logout
@@ -174,9 +206,11 @@ export default function LandingPage() {
                   </div>
                 </>
               ) : (
-                <Link href="/auth/signin" className="block px-2 py-1 hover:bg-accent rounded-md">
-                  Login
-                </Link>
+                <div className="border-t pt-4 mt-4">
+                  <Link href="/auth/signin" className="block px-2 py-1 hover:bg-accent rounded-md" onClick={() => setIsMenuOpen(false)}>
+                    Login
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -216,22 +250,6 @@ export default function LandingPage() {
                   <Button size="lg" variant="outline" asChild>
                     <Link href="/#features">Explore Features</Link>
                   </Button>
-                </div>
-                
-                {/* Stats */}
-                <div className="flex gap-8 pt-8 border-t">
-                  <div>
-                    <div className="text-3xl font-bold text-primary">10K+</div>
-                    <div className="text-sm text-muted-foreground">Active Teams</div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-primary">50K+</div>
-                    <div className="text-sm text-muted-foreground">Tasks Completed</div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-primary">99.9%</div>
-                    <div className="text-sm text-muted-foreground">Uptime</div>
-                  </div>
                 </div>
               </div>
               
