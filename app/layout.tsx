@@ -44,13 +44,39 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
+        
+        {/* Favicons */}
+        <link rel="icon" type="image/png" sizes="192x192" href="/teamlane-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/teamlane-512x512.png" />
+        <link rel="shortcut icon" href="/teamlane-192x192.png" />
+        
+        {/* Theme Color */}
         <meta name="theme-color" content="#6f42c1" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="TeamLane" />
+        <meta name="msapplication-TileColor" content="#6f42c1" />
+        <meta name="msapplication-navbutton-color" content="#6f42c1" />
+        
+        {/* Apple Touch Icons - iOS */}
         <link rel="apple-touch-icon" href="/teamlane-192x192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/teamlane-192x192.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/teamlane-192x192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/teamlane-512x512.png" />
+        
+        {/* Apple PWA Meta Tags */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="TeamLane" />
+        
+        {/* Android PWA */}
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="application-name" content="TeamLane" />
+        
+        {/* Windows */}
+        <meta name="msapplication-starturl" content="/" />
+        <meta name="msapplication-TileImage" content="/teamlane-192x192.png" />
+        
+        {/* Google Verification */}
         <meta name="google-site-verification" content="4qgP4ffjaHbqpkY0w9tzvZ6_jN0X-Y39XxCuL2kztgY" />
       </head>
       <body className={inter.className}>
