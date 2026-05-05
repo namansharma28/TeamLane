@@ -51,7 +51,7 @@ export default function EventTeamsPage() {
         // Call Gravitas API to get registered teams
         const gravitasUrl = process.env.NODE_ENV === 'production' 
           ? 'https://gravitas.grafene.in' 
-          : 'http://localhost:3001';
+          : 'http://localhost:3000';
         
         const url = `${gravitasUrl}/api/events/${eventId}/forms/${formId}/teams`;
         console.log('[EventTeams] Fetching from:', url);
