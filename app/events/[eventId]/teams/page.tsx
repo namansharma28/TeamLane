@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Download, Search, Filter, Mail, ExternalLink } from "lucide-react";
+import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Download, Search, Filter, Mail } from "lucide-react";
 import { LoadingPage } from '@/components/ui/loading-page';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,26 +76,9 @@ export default function EventTeamsPage() {
       }
       
       try {
-        // Call Gravitas API to get registered teams
-        // Use environment variable or fallback to localhost
-        const gravitasUrl = process.env.NEXT_PUBLIC_GRAVITAS_URL || 
-          (typeof window !== 'undefined' && window.location.hostname === 'teamlane.grafene.in'
-            ? 'https://gravitas.grafene.in'
-            : 'http://localhost:3000');
-        
-        const url = `${gravitasUrl}/api/events/${eventId}/forms/${formId}/teams`;
-        console.log('[EventTeams] ===== DEBUG INFO =====');
-        console.log('[EventTeams] Fetching from:', url);
-        console.log('[EventTeams] Event ID:', eventId);
-        console.log('[EventTeams] Form ID:', formId);
-        console.log('[EventTeams] Gravitas URL:', gravitasUrl);
-        console.log('[EventTeams] Window location:', typeof window !== 'undefined' ? window.location.href : 'server');
-        console.log('[EventTeams] Environment:', { 
-          NODE_ENV: process.env.NODE_ENV,
-          NEXT_PUBLIC_GRAVITAS_URL: process.env.NEXT_PUBLIC_GRAVITAS_URL,
-          hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
-        });
-        console.log('[EventTeams] ========================');
+        // Call TeamLane's own API - direct database access
+        const url = `/api/events/${eventId}/forms/${formId}/teams`;
+        console.log('[EventTeams] Fetching from TeamLane API:', url);
           
         const response = await fetch(url, {
           credentials: 'include',
@@ -104,28 +87,14 @@ export default function EventTeamsPage() {
           }
         });
         
-        console.log('[EventTeams] Response status:', response.status);
-        console.log('[EventTeams] Response URL:', response.url);
-        console.log('[EventTeams] Response headers:', Object.fromEntries(response.headers.entries()));
-        
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('[EventTeams] Error response (first 500 chars):', errorText.substring(0, 500));
-          console.error('[EventTeams] Full response length:', errorText.length);
-          
-          // Check if it's HTML (404 page)
-          if (errorText.includes('<!DOCTYPE html>')) {
-            console.error('[EventTeams] ❌ Received HTML instead of JSON - wrong URL or route doesn\'t exist');
-            console.error('[EventTeams] Expected URL:', url);
-            console.error('[EventTeams] Actual URL:', response.url);
-          }
-          
+          console.error('[EventTeams] Error response:', errorText.substring(0, 500));
           throw new Error(`Failed to fetch teams (${response.status})`);
         }
         
         const data = await response.json();
-        console.log('[EventTeams] ✅ Success! Received data:', data);
-        console.log('[EventTeams] Teams count:', data.teams?.length || 0);
+        console.log('[EventTeams] ✅ Success! Received', data.teams?.length || 0, 'teams');
         setTeams(data.teams || []);
         setFilteredTeams(data.teams || []);
       } catch (error) {
@@ -168,19 +137,10 @@ export default function EventTeamsPage() {
     setFilteredTeams(filtered);
   }, [teams, searchQuery, statusFilter]);
 
-  const getGravitasUrl = () => {
-    return process.env.NEXT_PUBLIC_GRAVITAS_URL || 
-      (typeof window !== 'undefined' && window.location.hostname === 'teamlane.grafene.in'
-        ? 'https://gravitas.grafene.in'
-        : 'http://localhost:3000');
-  };
-
   const handleShortlist = async (teamId: string, responseId: string, currentStatus: boolean) => {
     setIsUpdating(true);
     try {
-      const gravitasUrl = getGravitasUrl();
-
-      const response = await fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${responseId}/shortlist`, {
+      const response = await fetch(`/api/events/${eventId}/forms/${formId}/responses/${responseId}/shortlist`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -214,9 +174,7 @@ export default function EventTeamsPage() {
   const handleCheckIn = async (teamId: string, responseId: string, currentStatus: boolean) => {
     setIsUpdating(true);
     try {
-      const gravitasUrl = getGravitasUrl();
-
-      const response = await fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${responseId}/checkin`, {
+      const response = await fetch(`/api/events/${eventId}/forms/${formId}/responses/${responseId}/checkin`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -252,13 +210,11 @@ export default function EventTeamsPage() {
 
     setIsUpdating(true);
     try {
-      const gravitasUrl = getGravitasUrl();
-
       const selectedTeamsList = teams.filter(t => selectedTeams.has(t.id));
       
       await Promise.all(
         selectedTeamsList.map(team =>
-          fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${team.responseId}/shortlist`, {
+          fetch(`/api/events/${eventId}/forms/${formId}/responses/${team.responseId}/shortlist`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -371,32 +327,15 @@ export default function EventTeamsPage() {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportTeams}
-              disabled={filteredTeams.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            {formId && (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link 
-                  href={`${getGravitasUrl()}/events/${eventId}/forms/${formId}`}
-                  target="_blank"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Form
-                </Link>
-              </Button>
-            )}
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportTeams}
+            disabled={filteredTeams.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
 
         {/* Search and Filter Bar */}
