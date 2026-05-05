@@ -1,7 +1,8 @@
 'use client';
 
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,15 +63,19 @@ interface Team {
 export default function EventTeamsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { toast } = useToast();
   const eventId = params?.eventId as string;
   const formId = searchParams?.get('formId');
   const eventName = searchParams?.get('eventName');
+  const communityHandle = searchParams?.get('communityHandle');
   
   const [teams, setTeams] = useState<Team[]>([]);
   const [filteredTeams, setFilteredTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authorized, setAuthorized] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'shortlisted' | 'checked-in' | 'pending'>('all');
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
@@ -81,15 +86,37 @@ export default function EventTeamsPage() {
   const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchTeams = async () => {
+    const checkAuthorization = async () => {
+      if (status === 'loading') return;
+      
+      if (!session?.user) {
+        setError('Please sign in to view this page');
+        setLoading(false);
+        return;
+      }
+
       if (!eventId || !formId) {
         console.log('[EventTeams] Missing eventId or formId:', { eventId, formId });
         setLoading(false);
         return;
       }
-      
+
       try {
-        // Call TeamLane's own API - direct database access
+        // Check if user is member of the community conducting this event
+        const authResponse = await fetch(`/api/events/${eventId}/check-access`, {
+          credentials: 'include',
+        });
+
+        if (!authResponse.ok) {
+          setError('You do not have permission to view this page. You must be a member of the community conducting this event.');
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        setAuthorized(true);
+
+        // Fetch teams data
         const url = `/api/events/${eventId}/forms/${formId}/teams`;
         console.log('[EventTeams] Fetching from TeamLane API:', url);
           
@@ -118,8 +145,8 @@ export default function EventTeamsPage() {
       }
     };
 
-    fetchTeams();
-  }, [eventId, formId]);
+    checkAuthorization();
+  }, [eventId, formId, session, status]);
 
   // Filter teams based on search and status
   useEffect(() => {
@@ -373,7 +400,43 @@ export default function EventTeamsPage() {
     });
   };
 
-  if (loading) return <LoadingPage />;
+  if (loading || status === 'loading') return <LoadingPage />;
+  
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-muted-foreground">Please sign in to view this page</p>
+        </div>
+        <Button asChild>
+          <Link href="/auth/signin">Sign In</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!authorized && error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground max-w-md">{error}</p>
+        </div>
+        <div className="flex gap-2">
+          {communityHandle && (
+            <Button asChild>
+              <Link href={`/communities/${communityHandle}`}>Go to Community</Link>
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href="/">Go Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="text-red-500 mb-4">Error: {error}</div>
@@ -394,7 +457,14 @@ export default function EventTeamsPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => window.history.back()}
+            onClick={() => {
+              // Navigate to community page if handle is available, otherwise go back
+              if (communityHandle) {
+                router.push(`/communities/${communityHandle}`);
+              } else {
+                router.back();
+              }
+            }}
             className="shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />

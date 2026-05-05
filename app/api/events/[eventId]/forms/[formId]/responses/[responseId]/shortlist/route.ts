@@ -40,9 +40,64 @@ export async function PATCH(
 
     const { db } = await connectToDatabase();
 
-    // TEMPORARY: Allow any authenticated user to shortlist teams
-    // TODO: Add proper authorization checks after testing
-    console.log('[TeamLane Shortlist API] ✅ User authenticated, proceeding with shortlist');
+    // Check if user is a member of the community conducting this event
+    let event = null;
+    if (ObjectId.isValid(resolvedParams.eventId)) {
+      event = await db.collection('events').findOne({
+        _id: new ObjectId(resolvedParams.eventId)
+      });
+    }
+    
+    if (!event) {
+      event = await db.collection('events').findOne({
+        _id: resolvedParams.eventId as any
+      });
+    }
+
+    if (!event) {
+      console.log('[TeamLane Shortlist API] Event not found:', resolvedParams.eventId);
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    const community = await db.collection('communities').findOne({
+      _id: new ObjectId(event.communityId)
+    });
+
+    if (!community) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    // Check if user is a member of the community
+    const isMember = community.members && (
+      community.members.includes(session.user.id) ||
+      community.members.some((member: any) => member.toString() === session.user.id)
+    );
+
+    const isAdmin = community.admins && (
+      community.admins.includes(session.user.id) ||
+      community.admins.some((admin: any) => admin.toString() === session.user.id)
+    );
+
+    const isCreator = event.creatorId === session.user.id || 
+                      event.creatorId?.toString() === session.user.id;
+
+    const hasAccess = isMember || isAdmin || isCreator;
+
+    console.log('[TeamLane Shortlist API] Authorization:', {
+      userId: session.user.id,
+      isMember,
+      isAdmin,
+      isCreator,
+      hasAccess
+    });
+
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        error: 'Forbidden - You must be a member of the community to perform this action' 
+      }, { status: 403 });
+    }
+
+    console.log('[TeamLane Shortlist API] ✅ User authorized, proceeding with shortlist');
 
     // Update the response
     const result = await db.collection('formResponses').updateOne(
