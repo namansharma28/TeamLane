@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Download, Search, Filter, Mail } from "lucide-react";
+import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Download, Search, Filter, Mail, Home, ChevronRight } from "lucide-react";
 import { LoadingPage } from '@/components/ui/loading-page';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -373,30 +373,83 @@ export default function EventTeamsPage() {
   };
 
   const exportTeams = () => {
-    const csv = [
-      ['Team Name', 'Description', 'Members', 'Status', 'Shortlisted', 'Checked In', 'Created'],
-      ...filteredTeams.map(team => [
-        team.name,
+    // Create comprehensive CSV with all team and member details
+    const rows: string[][] = [];
+    
+    // Header row
+    rows.push([
+      'Team Name',
+      'Team Description',
+      'Total Members',
+      'Member Names',
+      'Member Emails',
+      'Member Roles',
+      'Shortlisted',
+      'Checked In',
+      'Status',
+      'Community Handle',
+      'Created Date',
+      'Response ID'
+    ]);
+
+    // Data rows
+    filteredTeams.forEach(team => {
+      // Prepare member data
+      const memberNames = team.members.map(m => m.name).join('; ');
+      const memberEmails = team.members.map(m => m.email).join('; ');
+      const memberRoles = team.members.map(m => m.role).join('; ');
+      
+      // Determine status
+      let status = 'Registered';
+      if (team.checkedIn) status = 'Checked In';
+      else if (team.shortlisted) status = 'Shortlisted';
+
+      rows.push([
+        team.name || '',
         team.description || '',
         team.memberCount.toString(),
-        team.checkedIn ? 'Checked In' : team.shortlisted ? 'Shortlisted' : 'Registered',
+        memberNames,
+        memberEmails,
+        memberRoles,
         team.shortlisted ? 'Yes' : 'No',
         team.checkedIn ? 'Yes' : 'No',
-        new Date(team.createdAt).toLocaleDateString()
-      ])
-    ].map(row => row.join(',')).join('\n');
+        status,
+        team.linkedCommunityHandle || '',
+        new Date(team.createdAt).toLocaleDateString(),
+        team.responseId || ''
+      ]);
+    });
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    // Convert to CSV format with proper escaping
+    const csvContent = rows.map(row => 
+      row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+
+    // Add BOM for Excel compatibility
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `teams-${eventName || 'event'}-${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Generate filename with event name and date
+    const eventNameSlug = eventName ? decodeURIComponent(eventName).replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'event';
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.download = `teams-${eventNameSlug}-${dateStr}.csv`;
+    
     a.click();
     window.URL.revokeObjectURL(url);
 
     toast({
       title: "Export Successful",
-      description: `Exported ${filteredTeams.length} team(s) to CSV`
+      description: `Exported ${filteredTeams.length} team(s) with ${filteredTeams.reduce((sum, t) => sum + t.memberCount, 0)} members to CSV`
     });
   };
 
@@ -452,42 +505,69 @@ export default function EventTeamsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-12 max-w-7xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              // Navigate to community page if handle is available, otherwise go back
-              if (communityHandle) {
-                router.push(`/communities/${communityHandle}`);
-              } else {
-                router.back();
-              }
-            }}
-            className="shrink-0"
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-2 text-sm mb-4 overflow-x-auto">
+          <Link 
+            href="/" 
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+          
+          {communityHandle && (
+            <>
+              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <Link 
+                href={`/communities/${communityHandle}`}
+                className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                {communityHandle}
+              </Link>
+            </>
+          )}
+          
+          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-foreground font-medium whitespace-nowrap">
+            Event Teams
+          </span>
+        </nav>
+
+        {/* Header */}
+        <div className="flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
               Registered Teams
             </h1>
             {eventName && (
-              <p className="text-muted-foreground mt-1 text-sm sm:text-base truncate">
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                 {decodeURIComponent(eventName)}
               </p>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportTeams}
-            disabled={filteredTeams.length === 0}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportTeams}
+              disabled={filteredTeams.length === 0}
+            >
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+            {communityHandle && (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link href={`/communities/${communityHandle}`}>
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Back to Community</span>
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
