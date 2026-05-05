@@ -9,8 +9,17 @@ import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Downlo
 import { LoadingPage } from '@/components/ui/loading-page';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +75,10 @@ export default function EventTeamsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'shortlisted' | 'checked-in' | 'pending'>('all');
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -149,10 +162,12 @@ export default function EventTeamsPage() {
 
       if (!response.ok) throw new Error('Failed to update shortlist status');
 
-      // Update local state
-      setTeams(teams.map(team => 
-        team.id === teamId ? { ...team, shortlisted: !currentStatus } : team
-      ));
+      // Update both teams and filteredTeams state
+      const updateTeam = (team: Team) => 
+        team.id === teamId ? { ...team, shortlisted: !currentStatus } : team;
+      
+      setTeams(prevTeams => prevTeams.map(updateTeam));
+      setFilteredTeams(prevFiltered => prevFiltered.map(updateTeam));
 
       toast({
         title: !currentStatus ? "Team Shortlisted" : "Removed from Shortlist",
@@ -183,10 +198,12 @@ export default function EventTeamsPage() {
 
       if (!response.ok) throw new Error('Failed to update check-in status');
 
-      // Update local state
-      setTeams(teams.map(team => 
-        team.id === teamId ? { ...team, checkedIn: !currentStatus } : team
-      ));
+      // Update both teams and filteredTeams state
+      const updateTeam = (team: Team) => 
+        team.id === teamId ? { ...team, checkedIn: !currentStatus } : team;
+      
+      setTeams(prevTeams => prevTeams.map(updateTeam));
+      setFilteredTeams(prevFiltered => prevFiltered.map(updateTeam));
 
       toast({
         title: !currentStatus ? "Team Checked In" : "Check-in Removed",
@@ -223,10 +240,12 @@ export default function EventTeamsPage() {
         )
       );
 
-      // Update local state
-      setTeams(teams.map(team => 
-        selectedTeams.has(team.id) ? { ...team, shortlisted: shortlist } : team
-      ));
+      // Update both teams and filteredTeams state
+      const updateTeam = (team: Team) => 
+        selectedTeams.has(team.id) ? { ...team, shortlisted: shortlist } : team;
+      
+      setTeams(prevTeams => prevTeams.map(updateTeam));
+      setFilteredTeams(prevFiltered => prevFiltered.map(updateTeam));
 
       setSelectedTeams(new Set());
 
@@ -243,6 +262,69 @@ export default function EventTeamsPage() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const openEmailDialog = (recipients: string[]) => {
+    setEmailRecipients(recipients);
+    setEmailSubject('');
+    setEmailMessage('');
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailSubject || !emailMessage) {
+      toast({
+        title: "Error",
+        description: "Please fill in subject and message",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/events/${eventId}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          recipients: emailRecipients,
+          subject: emailSubject,
+          message: emailMessage
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send email');
+      }
+
+      toast({
+        title: "Email Sent",
+        description: `Email sent to ${emailRecipients.length} recipient(s)`
+      });
+
+      setShowEmailDialog(false);
+      setEmailSubject('');
+      setEmailMessage('');
+      setEmailRecipients([]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send email",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleBulkEmail = () => {
+    if (selectedTeams.size === 0) return;
+    
+    const selectedTeamsList = teams.filter(t => selectedTeams.has(t.id));
+    const allEmails = selectedTeamsList.flatMap(team => team.members.map(m => m.email));
+    openEmailDialog(allEmails);
   };
 
   const handleSelectTeam = (teamId: string, checked: boolean) => {
@@ -397,6 +479,15 @@ export default function EventTeamsPage() {
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
+                    onClick={handleBulkEmail}
+                    disabled={isUpdating}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email All
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => setSelectedTeams(new Set())}
                   >
@@ -502,7 +593,7 @@ export default function EventTeamsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {teams.map((team) => (
+            {filteredTeams.map((team) => (
               <Card key={team.id} className="shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
                 <CardHeader className="pb-3 sm:pb-4">
                   <div className="flex items-start gap-3">
@@ -626,17 +717,18 @@ export default function EventTeamsPage() {
                               <DropdownMenuLabel>Contact Team</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               {team.members.map((member, idx) => (
-                                <DropdownMenuItem key={idx} asChild>
-                                  <a href={`mailto:${member.email}`}>
-                                    {member.name}
-                                  </a>
+                                <DropdownMenuItem 
+                                  key={idx}
+                                  onClick={() => openEmailDialog([member.email])}
+                                >
+                                  {member.name}
                                 </DropdownMenuItem>
                               ))}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild>
-                                <a href={`mailto:${team.members.map(m => m.email).join(',')}`}>
-                                  Email All Members
-                                </a>
+                              <DropdownMenuItem 
+                                onClick={() => openEmailDialog(team.members.map(m => m.email))}
+                              >
+                                Email All Members
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -650,6 +742,62 @@ export default function EventTeamsPage() {
           </div>
         )}
       </div>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Send Email</DialogTitle>
+            <DialogDescription>
+              Send an email to {emailRecipients.length} recipient(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="subject" className="text-sm font-medium">
+                Subject
+              </label>
+              <Input
+                id="subject"
+                placeholder="Enter email subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="message" className="text-sm font-medium">
+                Message
+              </label>
+              <Textarea
+                id="message"
+                placeholder="Enter your message"
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                rows={8}
+                className="resize-none"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Recipients: {emailRecipients.join(', ')}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailDialog(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={isUpdating || !emailSubject || !emailMessage}
+            >
+              {isUpdating ? 'Sending...' : 'Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
