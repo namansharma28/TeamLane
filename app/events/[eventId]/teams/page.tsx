@@ -5,9 +5,27 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Calendar, ArrowLeft } from "lucide-react";
+import { Users, Crown, Calendar, ArrowLeft, CheckCircle, Star, UserCheck, Download, Search, Filter, Mail, ExternalLink } from "lucide-react";
 import { LoadingPage } from '@/components/ui/loading-page';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from 'next/link';
 
 interface TeamMember {
@@ -27,52 +45,91 @@ interface Team {
   linkedCommunityId: string;
   linkedCommunityHandle: string;
   createdAt: string;
+  responseId?: string;
+  shortlisted?: boolean;
+  checkedIn?: boolean;
 }
 
 export default function EventTeamsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const eventId = params?.eventId as string;
   const formId = searchParams?.get('formId');
   const eventName = searchParams?.get('eventName');
   
   const [teams, setTeams] = useState<Team[]>([]);
+  const [filteredTeams, setFilteredTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'shortlisted' | 'checked-in' | 'pending'>('all');
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const fetchTeams = async () => {
       if (!eventId || !formId) {
         console.log('[EventTeams] Missing eventId or formId:', { eventId, formId });
+        setLoading(false);
         return;
       }
       
       try {
         // Call Gravitas API to get registered teams
-        const gravitasUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://gravitas.grafene.in' 
-          : 'http://localhost:3000';
+        // Use environment variable or fallback to localhost
+        const gravitasUrl = process.env.NEXT_PUBLIC_GRAVITAS_URL || 
+          (typeof window !== 'undefined' && window.location.hostname === 'teamlane.grafene.in'
+            ? 'https://gravitas.grafene.in'
+            : 'http://localhost:3000');
         
         const url = `${gravitasUrl}/api/events/${eventId}/forms/${formId}/teams`;
+        console.log('[EventTeams] ===== DEBUG INFO =====');
         console.log('[EventTeams] Fetching from:', url);
+        console.log('[EventTeams] Event ID:', eventId);
+        console.log('[EventTeams] Form ID:', formId);
+        console.log('[EventTeams] Gravitas URL:', gravitasUrl);
+        console.log('[EventTeams] Window location:', typeof window !== 'undefined' ? window.location.href : 'server');
+        console.log('[EventTeams] Environment:', { 
+          NODE_ENV: process.env.NODE_ENV,
+          NEXT_PUBLIC_GRAVITAS_URL: process.env.NEXT_PUBLIC_GRAVITAS_URL,
+          hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+        });
+        console.log('[EventTeams] ========================');
           
         const response = await fetch(url, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          }
         });
         
         console.log('[EventTeams] Response status:', response.status);
+        console.log('[EventTeams] Response URL:', response.url);
+        console.log('[EventTeams] Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('[EventTeams] Error response:', errorText);
-          throw new Error('Failed to fetch teams');
+          console.error('[EventTeams] Error response (first 500 chars):', errorText.substring(0, 500));
+          console.error('[EventTeams] Full response length:', errorText.length);
+          
+          // Check if it's HTML (404 page)
+          if (errorText.includes('<!DOCTYPE html>')) {
+            console.error('[EventTeams] ❌ Received HTML instead of JSON - wrong URL or route doesn\'t exist');
+            console.error('[EventTeams] Expected URL:', url);
+            console.error('[EventTeams] Actual URL:', response.url);
+          }
+          
+          throw new Error(`Failed to fetch teams (${response.status})`);
         }
         
         const data = await response.json();
-        console.log('[EventTeams] Received data:', data);
+        console.log('[EventTeams] ✅ Success! Received data:', data);
+        console.log('[EventTeams] Teams count:', data.teams?.length || 0);
         setTeams(data.teams || []);
+        setFilteredTeams(data.teams || []);
       } catch (error) {
-        console.error('[EventTeams] Error:', error);
+        console.error('[EventTeams] ❌ Error:', error);
         setError(error instanceof Error ? error.message : 'Something went wrong');
       } finally {
         setLoading(false);
@@ -81,6 +138,202 @@ export default function EventTeamsPage() {
 
     fetchTeams();
   }, [eventId, formId]);
+
+  // Filter teams based on search and status
+  useEffect(() => {
+    let filtered = teams;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(team =>
+        team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        team.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        team.members.some(m => 
+          m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          m.email.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(team => {
+        if (statusFilter === 'shortlisted') return team.shortlisted;
+        if (statusFilter === 'checked-in') return team.checkedIn;
+        if (statusFilter === 'pending') return !team.shortlisted && !team.checkedIn;
+        return true;
+      });
+    }
+
+    setFilteredTeams(filtered);
+  }, [teams, searchQuery, statusFilter]);
+
+  const getGravitasUrl = () => {
+    return process.env.NEXT_PUBLIC_GRAVITAS_URL || 
+      (typeof window !== 'undefined' && window.location.hostname === 'teamlane.grafene.in'
+        ? 'https://gravitas.grafene.in'
+        : 'http://localhost:3000');
+  };
+
+  const handleShortlist = async (teamId: string, responseId: string, currentStatus: boolean) => {
+    setIsUpdating(true);
+    try {
+      const gravitasUrl = getGravitasUrl();
+
+      const response = await fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${responseId}/shortlist`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shortlisted: !currentStatus })
+      });
+
+      if (!response.ok) throw new Error('Failed to update shortlist status');
+
+      // Update local state
+      setTeams(teams.map(team => 
+        team.id === teamId ? { ...team, shortlisted: !currentStatus } : team
+      ));
+
+      toast({
+        title: !currentStatus ? "Team Shortlisted" : "Removed from Shortlist",
+        description: !currentStatus 
+          ? "Team has been added to the shortlist" 
+          : "Team has been removed from the shortlist"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update shortlist status",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCheckIn = async (teamId: string, responseId: string, currentStatus: boolean) => {
+    setIsUpdating(true);
+    try {
+      const gravitasUrl = getGravitasUrl();
+
+      const response = await fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${responseId}/checkin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ checkedIn: !currentStatus })
+      });
+
+      if (!response.ok) throw new Error('Failed to update check-in status');
+
+      // Update local state
+      setTeams(teams.map(team => 
+        team.id === teamId ? { ...team, checkedIn: !currentStatus } : team
+      ));
+
+      toast({
+        title: !currentStatus ? "Team Checked In" : "Check-in Removed",
+        description: !currentStatus 
+          ? "Team has been checked in" 
+          : "Team check-in has been removed"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update check-in status",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleBulkShortlist = async (shortlist: boolean) => {
+    if (selectedTeams.size === 0) return;
+
+    setIsUpdating(true);
+    try {
+      const gravitasUrl = getGravitasUrl();
+
+      const selectedTeamsList = teams.filter(t => selectedTeams.has(t.id));
+      
+      await Promise.all(
+        selectedTeamsList.map(team =>
+          fetch(`${gravitasUrl}/api/events/${eventId}/forms/${formId}/responses/${team.responseId}/shortlist`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ shortlisted: shortlist })
+          })
+        )
+      );
+
+      // Update local state
+      setTeams(teams.map(team => 
+        selectedTeams.has(team.id) ? { ...team, shortlisted: shortlist } : team
+      ));
+
+      setSelectedTeams(new Set());
+
+      toast({
+        title: shortlist ? "Teams Shortlisted" : "Removed from Shortlist",
+        description: `${selectedTeams.size} team(s) updated successfully`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update teams",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSelectTeam = (teamId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTeams);
+    if (checked) {
+      newSelected.add(teamId);
+    } else {
+      newSelected.delete(teamId);
+    }
+    setSelectedTeams(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTeams(new Set(filteredTeams.map(t => t.id)));
+    } else {
+      setSelectedTeams(new Set());
+    }
+  };
+
+  const exportTeams = () => {
+    const csv = [
+      ['Team Name', 'Description', 'Members', 'Status', 'Shortlisted', 'Checked In', 'Created'],
+      ...filteredTeams.map(team => [
+        team.name,
+        team.description || '',
+        team.memberCount.toString(),
+        team.checkedIn ? 'Checked In' : team.shortlisted ? 'Shortlisted' : 'Registered',
+        team.shortlisted ? 'Yes' : 'No',
+        team.checkedIn ? 'Yes' : 'No',
+        new Date(team.createdAt).toLocaleDateString()
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `teams-${eventName || 'event'}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${filteredTeams.length} team(s) to CSV`
+    });
+  };
 
   if (loading) return <LoadingPage />;
   if (error) return (
@@ -91,6 +344,9 @@ export default function EventTeamsPage() {
       </Button>
     </div>
   );
+
+  const shortlistedCount = teams.filter(t => t.shortlisted).length;
+  const checkedInCount = teams.filter(t => t.checkedIn).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,7 +361,7 @@ export default function EventTeamsPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="min-w-0">
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
               Registered Teams
             </h1>
@@ -115,10 +371,106 @@ export default function EventTeamsPage() {
               </p>
             )}
           </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportTeams}
+              disabled={filteredTeams.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            {formId && (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link 
+                  href={`${getGravitasUrl()}/events/${eventId}/forms/${formId}`}
+                  target="_blank"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Form
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Search and Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search teams, members..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Teams</SelectItem>
+              <SelectItem value="shortlisted">Shortlisted</SelectItem>
+              <SelectItem value="checked-in">Checked In</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Bulk Actions */}
+        {selectedTeams.size > 0 && (
+          <Card className="mb-6 border-purple-200 dark:border-purple-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedTeams.size === filteredTeams.length}
+                    onCheckedChange={handleSelectAll}
+                  />
+                  <span className="font-medium">
+                    {selectedTeams.size} team(s) selected
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkShortlist(true)}
+                    disabled={isUpdating}
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    Shortlist
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkShortlist(false)}
+                    disabled={isUpdating}
+                  >
+                    Remove Shortlist
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedTeams(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -127,7 +479,7 @@ export default function EventTeamsPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-xl sm:text-2xl font-bold">{teams.length}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Teams</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
                 </div>
               </div>
             </CardContent>
@@ -143,17 +495,45 @@ export default function EventTeamsPage() {
                   <p className="text-xl sm:text-2xl font-bold">
                     {teams.reduce((sum, team) => sum + team.memberCount, 0)}
                   </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Participants</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Members</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-md hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-1">
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-bold">{shortlistedCount}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Shortlisted</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-bold">{checkedInCount}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Checked In</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xl sm:text-2xl font-bold">
@@ -161,7 +541,7 @@ export default function EventTeamsPage() {
                       ? Math.round(teams.reduce((sum, team) => sum + team.memberCount, 0) / teams.length)
                       : 0}
                   </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Team Size</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Size</p>
                 </div>
               </div>
             </CardContent>
@@ -186,18 +566,39 @@ export default function EventTeamsPage() {
             {teams.map((team) => (
               <Card key={team.id} className="shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
                 <CardHeader className="pb-3 sm:pb-4">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedTeams.has(team.id)}
+                      onCheckedChange={(checked) => handleSelectTeam(team.id, !!checked)}
+                      className="mt-1"
+                    />
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg sm:text-xl mb-1 sm:mb-2 truncate">{team.name}</CardTitle>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <CardTitle className="text-lg sm:text-xl truncate">{team.name}</CardTitle>
+                        <div className="flex gap-1 shrink-0">
+                          {team.shortlisted && (
+                            <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600 text-xs">
+                              <Star className="h-3 w-3 mr-1" />
+                              Shortlisted
+                            </Badge>
+                          )}
+                          {team.checkedIn && (
+                            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Checked In
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                       {team.description && (
-                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-2">
                           {team.description}
                         </p>
                       )}
+                      <Badge variant="secondary" className="text-xs">
+                        {team.memberCount} {team.memberCount === 1 ? 'member' : 'members'}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="ml-2 shrink-0 text-xs">
-                      {team.memberCount} {team.memberCount === 1 ? 'member' : 'members'}
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -240,15 +641,67 @@ export default function EventTeamsPage() {
                     </div>
 
                     {/* Team Info */}
-                    <div className="pt-2 sm:pt-3 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Created {new Date(team.createdAt).toLocaleDateString()}</span>
+                    <div className="pt-2 sm:pt-3 border-t space-y-3">
+                      <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>Created {new Date(team.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {team.linkedCommunityHandle && (
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">
+                            @{team.linkedCommunityHandle}
+                          </Badge>
+                        )}
                       </div>
-                      {team.linkedCommunityHandle && (
-                        <Badge variant="outline" className="text-[10px] sm:text-xs">
-                          @{team.linkedCommunityHandle}
-                        </Badge>
+
+                      {/* Action Buttons */}
+                      {team.responseId && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant={team.shortlisted ? "default" : "outline"}
+                            className={team.shortlisted ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                            onClick={() => handleShortlist(team.id, team.responseId!, team.shortlisted || false)}
+                            disabled={isUpdating}
+                          >
+                            <Star className={`h-3 w-3 mr-1 ${team.shortlisted ? 'fill-current' : ''}`} />
+                            {team.shortlisted ? 'Shortlisted' : 'Shortlist'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={team.checkedIn ? "default" : "outline"}
+                            className={team.checkedIn ? "bg-green-500 hover:bg-green-600" : ""}
+                            onClick={() => handleCheckIn(team.id, team.responseId!, team.checkedIn || false)}
+                            disabled={isUpdating}
+                          >
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            {team.checkedIn ? 'Checked In' : 'Check In'}
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost">
+                                <Mail className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Contact Team</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {team.members.map((member, idx) => (
+                                <DropdownMenuItem key={idx} asChild>
+                                  <a href={`mailto:${member.email}`}>
+                                    {member.name}
+                                  </a>
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <a href={`mailto:${team.members.map(m => m.email).join(',')}`}>
+                                  Email All Members
+                                </a>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       )}
                     </div>
                   </div>
