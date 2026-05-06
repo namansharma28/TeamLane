@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, User, Trash2, Save, AlertTriangle } from "lucide-react";
+import { ArrowLeft, User, Trash2, Save, AlertTriangle, Download, Smartphone } from "lucide-react";
 import { LoadingPage } from "@/components/ui/loading-page";
 import { motion } from "framer-motion";
 
@@ -30,6 +30,9 @@ export default function UserSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [lastTeamId, setLastTeamId] = useState<string | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
   
   // Simplified form data - only name
   const [name, setName] = useState('');
@@ -40,6 +43,39 @@ export default function UserSettingsPage() {
       const savedTeamId = localStorage.getItem('lastVisitedTeamId');
       setLastTeamId(savedTeamId);
     }
+  }, []);
+
+  // PWA Install functionality
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return;
+    }
+
+    // Listen for the beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+      console.log('[PWA] Install prompt available');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if app is already installed
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed');
+      setIsInstalled(true);
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   useEffect(() => {
@@ -167,6 +203,49 @@ export default function UserSettingsPage() {
     }
   };
 
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      // If no deferred prompt, show instructions
+      toast({
+        title: 'Install TeamLane',
+        description: 'To install the app, use your browser\'s menu and select "Install App" or "Add to Home Screen"',
+      });
+      return;
+    }
+
+    try {
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      console.log(`[PWA] User response: ${outcome}`);
+      
+      if (outcome === 'accepted') {
+        toast({
+          title: 'Success!',
+          description: 'TeamLane is being installed...',
+        });
+        setIsInstallable(false);
+        setDeferredPrompt(null);
+      } else {
+        toast({
+          title: 'Installation Cancelled',
+          description: 'You can install the app later from Settings',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('[PWA] Install error:', error);
+      toast({
+        title: 'Installation Failed',
+        description: 'Please try again or use your browser\'s install option',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-full">
       <LoadingPage />
@@ -229,9 +308,12 @@ export default function UserSettingsPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="mb-3 sm:mb-4 md:mb-6 w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+            <TabsList className="mb-3 sm:mb-4 md:mb-6 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
               <TabsTrigger value="profile" className="text-xs sm:text-sm">
                 Profile
+              </TabsTrigger>
+              <TabsTrigger value="app" className="text-xs sm:text-sm">
+                App
               </TabsTrigger>
               <TabsTrigger value="account" className="text-xs sm:text-sm">
                 Account
@@ -309,6 +391,112 @@ export default function UserSettingsPage() {
                       )}
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="app" className="space-y-3 sm:space-y-4 md:space-y-6">
+              <Card className="shadow-lg">
+                <CardHeader className="p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Smartphone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-base sm:text-lg md:text-xl">
+                        Install TeamLane App
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Install TeamLane as a native app on your device
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 md:p-6 pt-0 space-y-3 sm:space-y-4">
+                  {isInstalled ? (
+                    <div className="flex flex-col items-center justify-center p-6 sm:p-8 border-2 border-dashed border-green-500/50 rounded-lg bg-green-50 dark:bg-green-950/20">
+                      <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-green-500/10 flex items-center justify-center mb-3 sm:mb-4">
+                        <Download className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-base sm:text-lg font-semibold text-green-700 dark:text-green-300 mb-1 sm:mb-2">
+                        App Already Installed
+                      </h3>
+                      <p className="text-xs sm:text-sm text-center text-green-600 dark:text-green-400">
+                        TeamLane is already installed on your device
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col items-center justify-center p-6 sm:p-8 border-2 border-dashed rounded-lg bg-muted/50">
+                        <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                          <Smartphone className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                        </div>
+                        <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">
+                          Install TeamLane
+                        </h3>
+                        <p className="text-xs sm:text-sm text-center text-muted-foreground mb-4 sm:mb-6 max-w-md">
+                          Get the full app experience with offline access, push notifications, and faster performance
+                        </p>
+                        <Button 
+                          onClick={handleInstallApp}
+                          size="lg"
+                          className="w-full sm:w-auto"
+                        >
+                          <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                          Install App
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-medium text-sm sm:text-base text-blue-900 dark:text-blue-100">
+                          Benefits of Installing:
+                        </h4>
+                        <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                            <span>Works offline - access your teams even without internet</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                            <span>Faster loading - instant access to your workspace</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                            <span>Native app experience - runs like a regular app</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                            <span>Push notifications - stay updated on team activities</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                            <span>No app store required - install directly from browser</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      {!isInstallable && (
+                        <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                          <h4 className="font-medium text-sm sm:text-base text-amber-900 dark:text-amber-100 mb-2">
+                            Manual Installation:
+                          </h4>
+                          <div className="space-y-2 text-xs sm:text-sm text-amber-800 dark:text-amber-200">
+                            <p className="font-medium">On Chrome/Edge (Android/Desktop):</p>
+                            <ol className="list-decimal list-inside space-y-1 ml-2">
+                              <li>Tap the menu (⋮) in the top right</li>
+                              <li>Select "Install app" or "Add to Home screen"</li>
+                              <li>Follow the prompts to install</li>
+                            </ol>
+                            
+                            <p className="font-medium mt-3">On Safari (iOS):</p>
+                            <ol className="list-decimal list-inside space-y-1 ml-2">
+                              <li>Tap the Share button (□↑)</li>
+                              <li>Scroll down and tap "Add to Home Screen"</li>
+                              <li>Tap "Add" to confirm</li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
