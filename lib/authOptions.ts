@@ -95,7 +95,9 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NEXTAUTH_COOKIE_DOMAIN || undefined,
+        domain: process.env.NODE_ENV === 'production' 
+          ? process.env.NEXTAUTH_COOKIE_DOMAIN || '.grafene.in'
+          : undefined,
       },
     },
   },
@@ -151,6 +153,14 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
+      try {
+        const targetHost = new URL(url).hostname;
+        if (targetHost.endsWith(".grafene.in") || targetHost === "grafene.in" || targetHost === "localhost") {
+          return url;
+        }
+      } catch (e) {
+        // invalid URL
+      }
       return baseUrl;
     },
   },
