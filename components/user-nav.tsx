@@ -114,7 +114,7 @@ export function UserNav() {
         <DropdownMenuGroup>
             {teamIdToUse && (
               <>
-                <DropdownMenuItem onClick={() => router.push('/team-selection')}>
+                <DropdownMenuItem onClick={() => router.push('/teams')}>
                   <ArrowLeftRight className="mr-2 h-4 w-4" />
                   <span>Switch Team</span>
                 </DropdownMenuItem>

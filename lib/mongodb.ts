@@ -6,17 +6,14 @@ if (!process.env.MONGODB_URI) {
 
 const uri = process.env.MONGODB_URI;
 const options = {
-  maxPoolSize: 50,
-  minPoolSize: 5,
+  maxPoolSize: 20,
+  minPoolSize: 2,
   maxIdleTimeMS: 30000,
-  serverSelectionTimeoutMS: 30000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
-  connectTimeoutMS: 30000,
+  connectTimeoutMS: 10000,
   retryWrites: true,
   retryReads: true,
-  writeConcern: { w: 'majority' as const, j: true },
-  readConcern: { level: 'majority' as const },
-  compressors: ['zlib'] as ('zlib' | 'none' | 'snappy' | 'zstd')[],
 };
 
 let client: MongoClient;
@@ -25,6 +22,7 @@ let clientPromise: Promise<MongoClient>;
 let globalWithMongo = global as typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>;
   _mongoClient?: MongoClient;
+  _indexesCreated?: boolean;
 };
 
 if (!globalWithMongo._mongoClientPromise) {
@@ -38,8 +36,21 @@ if (!globalWithMongo._mongoClientPromise) {
 }
 
 clientPromise
-  .then(() => {
-    // MongoDB connected
+  .then(async (c) => {
+    if (!globalWithMongo._indexesCreated) {
+      globalWithMongo._indexesCreated = true;
+      try {
+        const dbName = process.env.MONGODB_DB || 'gravitas';
+        const db = c.db(dbName);
+        await Promise.all([
+          db.collection('teams').createIndex({ 'members.email': 1 }),
+          db.collection('boards').createIndex({ teamId: 1 }),
+          db.collection('tasks').createIndex({ boardId: 1, updatedAt: -1 }),
+        ]);
+      } catch (e) {
+        console.warn('Index creation skipped:', e);
+      }
+    }
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);

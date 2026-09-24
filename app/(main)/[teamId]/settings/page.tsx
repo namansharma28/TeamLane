@@ -291,8 +291,8 @@ export default function TeamSettingsPage() {
         description: 'Team deleted successfully',
       });
       
-      // Redirect to team selection page
-      router.push('/team-selection');
+      // Redirect to teams page
+      router.push('/teams');
       
     } catch (error) {
       console.error('Error deleting team:', error);
@@ -324,8 +324,8 @@ export default function TeamSettingsPage() {
         description: 'You have left the team',
       });
       
-      // Redirect to team selection page
-      router.push('/team-selection');
+      // Redirect to teams page
+      router.push('/teams');
       
     } catch (error: any) {
       console.error('Error leaving team:', error);

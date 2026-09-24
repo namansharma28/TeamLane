@@ -14,99 +14,68 @@ export async function GET(request: Request) {
     const { db } = await connectToDatabase();
     const userEmail = session.user.email;
 
-    // Fetch all dashboard data in parallel for maximum performance
-    const [teams, recentActivity] = await Promise.all([
-      // User's teams with member count
-      db.collection('teams')
-        .find({
-          'members.email': userEmail
-        })
-        .project({ 
-          name: 1, 
-          description: 1, 
-          members: 1, 
-          createdAt: 1 
-        })
-        .sort({ createdAt: -1 })
-        .toArray(),
+    // 1. Fetch user's teams with projection
+    const teams = await db.collection('teams')
+      .find({ 'members.email': userEmail })
+      .project({ name: 1, description: 1, members: 1, createdAt: 1 })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-      // Recent activity across all user's teams (last 10 activities)
-      db.collection('teams')
+    if (teams.length === 0) {
+      return NextResponse.json({
+        teams: [],
+        recentActivity: [],
+        meta: {
+          fetchedAt: new Date().toISOString(),
+          userId: userEmail,
+          teamCount: 0,
+        },
+      });
+    }
+
+    const teamIds = teams.map(t => t._id);
+
+    // 2. Fetch boards and board counts in parallel
+    const [boards, boardCounts] = await Promise.all([
+      db.collection('boards')
+        .find({ teamId: { $in: teamIds } })
+        .project({ name: 1, teamId: 1 })
+        .toArray(),
+      db.collection('boards')
         .aggregate([
-          {
-            $match: {
-              'members.email': userEmail
-            }
-          },
-          {
-            $lookup: {
-              from: 'boards',
-              localField: '_id',
-              foreignField: 'teamId',
-              as: 'boards'
-            }
-          },
-          {
-            $unwind: {
-              path: '$boards',
-              preserveNullAndEmptyArrays: true
-            }
-          },
-          {
-            $lookup: {
-              from: 'tasks',
-              localField: 'boards._id',
-              foreignField: 'boardId',
-              as: 'tasks'
-            }
-          },
-          {
-            $unwind: {
-              path: '$tasks',
-              preserveNullAndEmptyArrays: true
-            }
-          },
-          {
-            $sort: { 'tasks.updatedAt': -1 }
-          },
-          {
-            $limit: 10
-          },
-          {
-            $project: {
-              teamName: '$name',
-              boardName: '$boards.name',
-              taskTitle: '$tasks.title',
-              taskStatus: '$tasks.status',
-              updatedAt: '$tasks.updatedAt'
-            }
-          }
+          { $match: { teamId: { $in: teamIds } } },
+          { $group: { _id: '$teamId', count: { $sum: 1 } } }
         ])
         .toArray()
     ]);
 
-    // Get board counts for each team
-    const teamIds = teams.map(team => team._id);
-    const boardCounts = await db.collection('boards')
-      .aggregate([
-        {
-          $match: {
-            teamId: { $in: teamIds }
-          }
-        },
-        {
-          $group: {
-            _id: '$teamId',
-            count: { $sum: 1 }
-          }
-        }
-      ])
-      .toArray();
+    const boardMap = new Map(boards.map(b => [b._id.toString(), b]));
+    const boardCountMap = new Map(boardCounts.map(bc => [bc._id.toString(), bc.count]));
+    const teamMap = new Map(teams.map(t => [t._id.toString(), t.name]));
 
-    // Map board counts to teams
-    const boardCountMap = new Map(
-      boardCounts.map(bc => [bc._id.toString(), bc.count])
-    );
+    const boardIds = boards.map(b => b._id);
+
+    // 3. Fetch recent 10 tasks across user boards
+    let recentActivity: any[] = [];
+    if (boardIds.length > 0) {
+      const recentTasks = await db.collection('tasks')
+        .find({ boardId: { $in: boardIds } })
+        .sort({ updatedAt: -1 })
+        .limit(10)
+        .toArray();
+
+      recentActivity = recentTasks.map(task => {
+        const board = boardMap.get(task.boardId?.toString() || '');
+        const teamName = board?.teamId ? (teamMap.get(board.teamId.toString()) || '') : '';
+        return {
+          teamName,
+          boardName: board?.name || '',
+          taskTitle: task.title || '',
+          taskStatus: task.status || '',
+          updatedAt: task.updatedAt || new Date().toISOString(),
+        };
+      });
+    }
 
     // Enrich teams with board counts
     const enrichedTeams = teams.map(team => ({

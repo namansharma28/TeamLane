@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/team-selection`,
+      url: `${baseUrl}/teams`,
       lastModified: currentDate,
       changeFrequency: 'daily',
       priority: 0.9,

@@ -64,8 +64,8 @@ export function BreadcrumbProvider({
         return []; // Home page, no breadcrumbs needed
       }
 
-      // Team selection page
-      if (segments[0] === 'team-selection') {
+      // Teams page
+      if (segments[0] === 'teams') {
         items.push({ label: "Teams", icon: Users });
         return items;
       }
@@ -74,7 +74,7 @@ export function BreadcrumbProvider({
       const teamId = segments[0];
       const section = segments[1];
 
-      if (teamId && teamId !== 'team-selection') {
+      if (teamId && teamId !== 'teams') {
         // Add team breadcrumb
         const teamName = teamData?.name || `Team ${teamId.substring(0, 6)}...`;
         items.push({ 
@@ -191,7 +191,7 @@ export function BreadcrumbProvider({
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link 
-                href="/team-selection" 
+                href="/teams" 
                 className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
               >
                 <Home className="h-4 w-4" />

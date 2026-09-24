@@ -76,9 +76,9 @@ export function MainNav() {
         // For team settings, we want to go to the team settings page, not user settings
         let href;
         if (item.teamSettings) {
-          href = teamIdToUse ? `/${teamIdToUse}/settings` : "/team-selection";
+          href = teamIdToUse ? `/${teamIdToUse}/settings` : "/teams";
         } else {
-          href = teamIdToUse ? `/${teamIdToUse}${item.href}` : "/team-selection";
+          href = teamIdToUse ? `/${teamIdToUse}${item.href}` : "/teams";
         }
         
         const isActive = pathname === href || pathname?.startsWith(`${href}/`);

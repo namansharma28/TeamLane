@@ -37,13 +37,13 @@ export async function middleware(request: NextRequest) {
     pathname === '/register'
   ) {
     if (isAuth) {
-      return NextResponse.redirect(new URL('/team-selection', request.url));
+      return NextResponse.redirect(new URL('/teams', request.url));
     }
 
     const currentCallback = searchParams.get('callbackUrl');
     let callbackUrl: string;
     if (!currentCallback || currentCallback === '/') {
-      callbackUrl = `${originHost}/team-selection`;
+      callbackUrl = `${originHost}/teams`;
     } else if (currentCallback.startsWith('/')) {
       callbackUrl = `${originHost}${currentCallback}`;
     } else {

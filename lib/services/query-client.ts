@@ -27,7 +27,7 @@ export function createQueryClient(): QueryClient {
       queries: {
         staleTime: STALE_TIME.medium,
         gcTime: CACHE_TIME.medium,
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false,
         refetchOnReconnect: true,
         refetchOnMount: false,
         retry: 1,

@@ -199,7 +199,7 @@ export default function UserSettingsPage() {
     if (lastTeamId) {
       router.push(`/${lastTeamId}/dashboard`);
     } else {
-      router.push('/team-selection');
+      router.push('/teams');
     }
   };
 

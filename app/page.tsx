@@ -87,7 +87,7 @@ export default function LandingPage() {
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
-      router.push('/team-selection');
+      router.push('/teams');
     } else {
       router.push('/auth/signup');
     }

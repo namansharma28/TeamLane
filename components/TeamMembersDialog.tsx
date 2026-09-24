@@ -203,7 +203,7 @@ export function TeamMembersDialog({
       toast.success("You have left the team");
       onOpenChange(false);
       // Redirect to team selection page
-      router.push('/team-selection');
+      router.push('/teams');
     } catch (error) {
       console.error("Error leaving team:", error);
       toast.error(error instanceof Error ? error.message : "Failed to leave team");
