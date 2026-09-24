@@ -18,133 +18,85 @@ export async function GET(
     const { db } = await connectToDatabase();
     const userEmail = session.user.email;
 
-    // Fetch all team-related data in parallel
-    const [team, boards, dashboardData] = await Promise.all([
-      // Team details with members
-      db.collection('teams').findOne({
-        _id: new ObjectId(teamId),
-        'members.email': userEmail
-      }),
+    if (!ObjectId.isValid(teamId)) {
+      return NextResponse.json({ error: 'Invalid team ID' }, { status: 400 });
+    }
 
-      // All boards for this team
-      db.collection('boards')
-        .find({ teamId: teamId }) // Changed from ObjectId to string
-        .project({ title: 1, description: 1, category: 1, createdAt: 1, updatedAt: 1 })
-        .sort({ updatedAt: -1 })
-        .toArray(),
-
-      // Dashboard stats
-      db.collection('boards')
-        .aggregate([
-          { $match: { teamId: teamId } }, // Changed from ObjectId to string
-          {
-            $addFields: {
-              boardIdString: { $toString: '$_id' }
-            }
-          },
-          {
-            $lookup: {
-              from: 'tasks',
-              localField: 'boardIdString',
-              foreignField: 'boardId',
-              as: 'tasks'
-            }
-          },
-          {
-            $project: {
-              title: 1,
-              tasks: 1,
-              totalTasks: { $size: '$tasks' },
-              completedTasks: {
-                $size: {
-                  $filter: {
-                    input: '$tasks',
-                    as: 'task',
-                    cond: { $eq: ['$$task.status', 'done'] }
-                  }
-                }
-              },
-              inProgressTasks: {
-                $size: {
-                  $filter: {
-                    input: '$tasks',
-                    as: 'task',
-                    cond: { $eq: ['$$task.status', 'in-progress'] }
-                  }
-                }
-              },
-              todoTasks: {
-                $size: {
-                  $filter: {
-                    input: '$tasks',
-                    as: 'task',
-                    cond: { $eq: ['$$task.status', 'todo'] }
-                  }
-                }
-              }
-            }
-          }
-        ])
-        .toArray()
-    ]);
+    const team = await db.collection('teams').findOne({
+      _id: new ObjectId(teamId),
+      'members.email': userEmail
+    });
 
     if (!team) {
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
 
-    // Calculate total stats
-    const totalStats = dashboardData.reduce((acc, board) => ({
-      total: acc.total + board.totalTasks,
-      completed: acc.completed + board.completedTasks,
-      inProgress: acc.inProgress + board.inProgressTasks,
-      todo: acc.todo + board.todoTasks
-    }), { total: 0, completed: 0, inProgress: 0, todo: 0 });
+    // Parallel fetch boards, notes count, messages count
+    const [boards, notesCount, messagesCount] = await Promise.all([
+      db.collection('boards')
+        .find({ teamId: teamId })
+        .project({ title: 1, description: 1, category: 1, createdAt: 1, updatedAt: 1 })
+        .sort({ updatedAt: -1 })
+        .toArray(),
+      db.collection('notes').countDocuments({ teamId: new ObjectId(teamId) }),
+      db.collection('messages').countDocuments({ teamId: new ObjectId(teamId) })
+    ]);
 
-    // Get recent activity (last 10 task updates)
-    const recentActivity = await db.collection('tasks')
-      .aggregate([
+    const boardIdsStr = boards.map(b => b._id.toString());
+    const boardMap = new Map(boards.map(b => [b._id.toString(), b.title]));
+
+    let totalStats = { total: 0, completed: 0, inProgress: 0, todo: 0 };
+    let boardStatsMap = new Map<string, { total: number; completed: number }>();
+    let recentActivity: any[] = [];
+
+    if (boardIdsStr.length > 0) {
+      // Direct indexed task aggregation
+      const taskAggregation = await db.collection('tasks').aggregate([
+        { $match: { boardId: { $in: boardIdsStr } } },
         {
-          $match: {
-            boardId: { $in: boards.map(b => b._id.toString()) }
-          }
-        },
-        { $sort: { updatedAt: -1 } },
-        { $limit: 10 },
-        {
-          $addFields: {
-            boardIdObj: { $toObjectId: '$boardId' }
-          }
-        },
-        {
-          $lookup: {
-            from: 'boards',
-            localField: 'boardIdObj',
-            foreignField: '_id',
-            as: 'board'
-          }
-        },
-        {
-          $unwind: '$board'
-        },
-        {
-          $project: {
-            title: 1,
-            status: 1,
-            assignedTo: 1,
-            updatedAt: 1,
-            boardName: '$board.title'
+          $group: {
+            _id: '$boardId',
+            total: { $sum: 1 },
+            completed: {
+              $sum: { $cond: [{ $eq: ['$status', 'done'] }, 1, 0] }
+            },
+            inProgress: {
+              $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] }
+            },
+            todo: {
+              $sum: { $cond: [{ $eq: ['$status', 'todo'] }, 1, 0] }
+            }
           }
         }
-      ])
-      .toArray();
+      ]).toArray();
 
-    // Get notes count
-    const notesCount = await db.collection('notes')
-      .countDocuments({ teamId: new ObjectId(teamId) });
+      taskAggregation.forEach(stat => {
+        boardStatsMap.set(stat._id, { total: stat.total, completed: stat.completed });
+        totalStats.total += stat.total;
+        totalStats.completed += stat.completed;
+        totalStats.inProgress += stat.inProgress;
+        totalStats.todo += stat.todo;
+      });
 
-    // Get messages count
-    const messagesCount = await db.collection('messages')
-      .countDocuments({ teamId: new ObjectId(teamId) });
+      // Recent activity
+      const recentTasks = await db.collection('tasks')
+        .find({ boardId: { $in: boardIdsStr } })
+        .sort({ updatedAt: -1 })
+        .limit(10)
+        .toArray();
+
+      recentActivity = recentTasks.map(activity => ({
+        id: activity._id.toString(),
+        user: {
+          name: activity.assignedTo || 'Unknown',
+          initials: (activity.assignedTo || 'U')[0].toUpperCase()
+        },
+        action: 'updated',
+        target: activity.title,
+        time: activity.updatedAt || new Date().toISOString(),
+        board: boardMap.get(activity.boardId) || 'Board'
+      }));
+    }
 
     return NextResponse.json({
       team: {
@@ -168,34 +120,27 @@ export async function GET(
           completed: totalStats.completed,
           inProgress: totalStats.inProgress,
           todo: totalStats.todo,
-          overdue: 0 // TODO: Calculate overdue tasks
+          overdue: 0
         },
         notes: {
           total: notesCount,
-          updatedToday: 0 // TODO: Calculate notes updated today
+          updatedToday: 0
         },
         messages: {
           total: messagesCount,
-          conversations: 0 // TODO: Calculate unique conversations
+          conversations: 0
         }
       },
-      boardStats: dashboardData.map(board => ({
-        id: board._id.toString(),
-        title: board.title,
-        totalTasks: board.totalTasks,
-        completedTasks: board.completedTasks
-      })),
-      recentActivity: recentActivity.map(activity => ({
-        id: activity._id.toString(),
-        user: {
-          name: activity.assignedTo || 'Unknown',
-          initials: (activity.assignedTo || 'U')[0].toUpperCase()
-        },
-        action: 'updated',
-        target: activity.title,
-        time: activity.updatedAt,
-        board: activity.boardName
-      })),
+      boardStats: boards.map(board => {
+        const stats = boardStatsMap.get(board._id.toString()) || { total: 0, completed: 0 };
+        return {
+          id: board._id.toString(),
+          title: board.title,
+          totalTasks: stats.total,
+          completedTasks: stats.completed
+        };
+      }),
+      recentActivity,
       meta: {
         fetchedAt: new Date().toISOString(),
         userId: userEmail,
@@ -204,7 +149,7 @@ export async function GET(
       }
     }, {
       headers: {
-        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
+        'Cache-Control': 'private, max-age=60',
         'X-API-Version': 'composite-v1'
       }
     });
