@@ -33,40 +33,57 @@ export async function GET(request: Request) {
       });
     }
 
-    const teamIds = teams.map(t => t._id);
+    const teamIdObjs = teams.map(t => t._id);
+    const teamIdStrs = teams.map(t => t._id.toString());
+    const allTeamIdMatches = [...teamIdObjs, ...teamIdStrs];
 
-    // 2. Fetch boards and board counts in parallel
+    // 2. Fetch boards and board counts in parallel safely matching string or ObjectId teamId
     const [boards, boardCounts] = await Promise.all([
       db.collection('boards')
-        .find({ teamId: { $in: teamIds } })
+        .find({ teamId: { $in: allTeamIdMatches } })
         .project({ name: 1, teamId: 1 })
         .toArray(),
       db.collection('boards')
         .aggregate([
-          { $match: { teamId: { $in: teamIds } } },
+          { $match: { teamId: { $in: allTeamIdMatches } } },
           { $group: { _id: '$teamId', count: { $sum: 1 } } }
         ])
         .toArray()
     ]);
 
-    const boardMap = new Map(boards.map(b => [b._id.toString(), b]));
-    const boardCountMap = new Map(boardCounts.map(bc => [bc._id.toString(), bc.count]));
-    const teamMap = new Map(teams.map(t => [t._id.toString(), t.name]));
+    const boardMap = new Map(boards.map(b => [b._id ? b._id.toString() : '', b]));
+    const boardCountMap = new Map();
+    boardCounts.forEach(bc => {
+      if (bc._id) {
+        boardCountMap.set(bc._id.toString(), bc.count);
+      }
+    });
 
-    const boardIds = boards.map(b => b._id);
+    const teamMap = new Map();
+    teams.forEach(t => {
+      if (t._id) {
+        teamMap.set(t._id.toString(), t.name);
+      }
+    });
+
+    const boardIdObjs = boards.map(b => b._id);
+    const boardIdStrs = boards.map(b => b._id.toString());
+    const allBoardIdMatches = [...boardIdObjs, ...boardIdStrs];
 
     // 3. Fetch recent 10 tasks across user boards
     let recentActivity: any[] = [];
-    if (boardIds.length > 0) {
+    if (allBoardIdMatches.length > 0) {
       const recentTasks = await db.collection('tasks')
-        .find({ boardId: { $in: boardIds } })
+        .find({ boardId: { $in: allBoardIdMatches } })
         .sort({ updatedAt: -1 })
         .limit(10)
         .toArray();
 
       recentActivity = recentTasks.map(task => {
-        const board = boardMap.get(task.boardId?.toString() || '');
-        const teamName = board?.teamId ? (teamMap.get(board.teamId.toString()) || '') : '';
+        const bIdStr = task.boardId ? task.boardId.toString() : '';
+        const board = boardMap.get(bIdStr);
+        const tIdStr = board?.teamId ? board.teamId.toString() : '';
+        const teamName = teamMap.get(tIdStr) || '';
         return {
           teamName,
           boardName: board?.name || '',
@@ -78,10 +95,13 @@ export async function GET(request: Request) {
     }
 
     // Enrich teams with board counts
-    const enrichedTeams = teams.map(team => ({
-      ...team,
-      boardCount: boardCountMap.get(team._id.toString()) || 0
-    }));
+    const enrichedTeams = teams.map(team => {
+      const idStr = team._id ? team._id.toString() : '';
+      return {
+        ...team,
+        boardCount: boardCountMap.get(idStr) || 0
+      };
+    });
 
     return NextResponse.json({
       teams: enrichedTeams,
