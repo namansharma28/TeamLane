@@ -27,6 +27,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2, Users, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/services/query-client";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -48,6 +50,7 @@ export function CreateTeamDialog({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,6 +76,12 @@ export function CreateTeamDialog({
       }
 
       const data = await response.json();
+      const newTeamId = data._id || data.id;
+
+      // Invalidate queries so teams lists refresh
+      queryClient.invalidateQueries({ queryKey: queryKeys.team.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+
       toast.success("Team created successfully!");
       
       if (onTeamCreated) {
@@ -82,8 +91,10 @@ export function CreateTeamDialog({
       // If returnTo URL is provided, redirect there instead of dashboard
       if (returnTo) {
         window.location.href = returnTo;
+      } else if (newTeamId) {
+        router.push(`/${newTeamId}/dashboard`);
       } else {
-        router.push(`/${data.id}/dashboard`);
+        router.push('/teams');
       }
       
       onOpenChange(false);

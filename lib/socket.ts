@@ -26,10 +26,14 @@ export const SOCKET_EVENTS = {
 export async function emitSocketEvent(req: Request, event: string, data: any, room: string) {
   try {
     const socketEmitUrl = new URL('/api/socket/emit', req.url).toString();
+    const cookieHeader = req.headers.get('cookie') || '';
+    const internalSecret = process.env.NEXTAUTH_SECRET || 'teamlane-internal-secret';
     await fetch(socketEmitUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'x-internal-secret': internalSecret,
       },
       body: JSON.stringify({
         event,

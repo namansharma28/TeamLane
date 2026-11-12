@@ -71,10 +71,16 @@ export async function GET(
       _id: task._id.toString()
     }));
 
+    const userEmail = session.user.email.toLowerCase();
+    const isTeamAdmin = (team.members || []).some(
+      (m: any) => m.email?.toLowerCase() === userEmail && m.role === 'admin'
+    );
+    const isAdmin = isTeamAdmin || board.createdBy?.email?.toLowerCase() === userEmail;
+
     return NextResponse.json({
       board: boardWithStringId,
       tasks: tasksWithStringId,
-      isAdmin: board.createdBy?.email === session.user.email
+      isAdmin
     }, {
       headers: {
         'Cache-Control': 'private, max-age=10', // Cache for 10 seconds

@@ -1,56 +1,51 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Users, ArrowLeft, Crown, Calendar, Building2 } from "lucide-react";
+import { Plus, Users, ArrowLeft, Crown, Calendar, Building2, RefreshCw } from "lucide-react";
 import { CreateTeamDialog } from "@/components/teams/create-team-dialog";
 import { JoinTeamDialog } from "@/components/teams/join-team-dialog";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
-import { useDashboard } from "@/lib/services/client";
+import { useTeams, Team } from "@/lib/services/client";
 import { useSession } from "next-auth/react";
-
-interface Team {
-  _id: string;
-  name: string;
-  description?: string;
-  members: Array<{
-    email: string;
-    role: string;
-    joinedAt: string;
-  }>;
-  createdAt: string;
-  boardCount?: number;
-}
 
 function TeamSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
   const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
   
-  // Use React Query hook for dashboard data
-  const { data, isLoading: loading, error } = useDashboard();
-  const teams = data?.teams || [];
+  // Only enable query once session status is resolved
+  const isAuthReady = status === "authenticated";
+  const { 
+    data: teams = [], 
+    isLoading: loadingTeams, 
+    error, 
+    refetch 
+  } = useTeams({ enabled: isAuthReady });
+
+  const loading = status === "loading" || (isAuthReady && loadingTeams);
   
   // Get returnTo URL from query params
   const returnTo = searchParams?.get('returnTo');
 
-  // Show error toast if fetch failed
-  if (error) {
-    toast({
-      title: "Error",
-      description: "Failed to load teams. Please try again.",
-      variant: "destructive",
-    });
-  }
+  // Handle errors in a useEffect hook safely - NEVER during render!
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Failed to load teams",
+        description: error instanceof Error ? error.message : "Please check your connection and try again.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const handleTeamClick = (teamId: string) => {
-    // If there's a returnTo URL, redirect there instead of dashboard
     if (returnTo) {
       window.location.href = returnTo;
     } else {
@@ -59,8 +54,8 @@ function TeamSelectionContent() {
   };
 
   const getUserRole = (team: Team, userEmail?: string | null) => {
-    if (!userEmail) return 'member';
-    const member = team.members.find(m => m.email === userEmail);
+    if (!userEmail || !team.members) return 'member';
+    const member = team.members.find(m => m.email?.toLowerCase() === userEmail.toLowerCase());
     return member?.role || 'member';
   };
 
@@ -106,10 +101,26 @@ function TeamSelectionContent() {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative min-h-[300px]">
           <LoadingOverlay isLoading={loading} />
-          
-          {!loading && teams.length === 0 ? (
+
+          {error && !loading ? (
+            <Card className="shadow-lg border-destructive/30">
+              <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 text-center px-3 sm:px-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-destructive/10 flex items-center justify-center mb-3 sm:mb-4">
+                  <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-destructive" />
+                </div>
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-1 sm:mb-2">Unable to load teams</h3>
+                <p className="text-muted-foreground mb-4 sm:mb-6 max-w-md text-xs sm:text-sm">
+                  {error instanceof Error ? error.message : "Something went wrong while loading your teams."}
+                </p>
+                <Button onClick={() => refetch()} variant="outline" className="text-xs sm:text-sm">
+                  <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          ) : !loading && teams.length === 0 ? (
             <Card className="shadow-lg">
               <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 text-center px-3 sm:px-4">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg bg-muted flex items-center justify-center mb-3 sm:mb-4 md:mb-6">
@@ -131,7 +142,7 @@ function TeamSelectionContent() {
                 </div>
               </CardContent>
             </Card>
-          ) : (
+          ) : !loading && teams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {teams.map((team) => (
                 <Card 
@@ -160,7 +171,7 @@ function TeamSelectionContent() {
                       <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1 sm:gap-2">
                           <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                          <span>{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
+                          <span>{(team.members || []).length} member{(team.members || []).length !== 1 ? 's' : ''}</span>
                         </div>
                         <div className="flex items-center gap-1 sm:gap-2">
                           <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -176,17 +187,17 @@ function TeamSelectionContent() {
                       )}
                       
                       <div className="flex -space-x-2">
-                        {team.members.slice(0, 4).map((member, idx) => (
+                        {(team.members || []).slice(0, 4).map((member, idx) => (
                           <div
                             key={idx}
                             className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-primary border-2 border-background flex items-center justify-center text-primary-foreground text-[10px] sm:text-xs font-semibold"
                           >
-                            {member.email[0].toUpperCase()}
+                            {(member.email || '?')[0].toUpperCase()}
                           </div>
                         ))}
-                        {team.members.length > 4 && (
+                        {(team.members || []).length > 4 && (
                           <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-muted-foreground text-[10px] sm:text-xs font-semibold">
-                            +{team.members.length - 4}
+                            +{(team.members || []).length - 4}
                           </div>
                         )}
                       </div>
@@ -195,7 +206,7 @@ function TeamSelectionContent() {
                 </Card>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         <CreateTeamDialog 
