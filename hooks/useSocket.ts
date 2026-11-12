@@ -39,13 +39,8 @@ export function useSocket(boardId?: string) {
       };
       
       const onConnectError = (err: Error) => {
-        console.error('Socket connection error:', err);
+        console.warn('Socket connection error:', err.message);
         setStatus('disconnected');
-        toast({
-          variant: 'destructive',
-          title: "Connection error",
-          description: "Unable to connect to real-time server"
-        });
       };
       
       socketInstance.on('connect', onConnect);

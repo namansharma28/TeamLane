@@ -10,10 +10,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponseW
   }
 
   try {
-    // Verify the user is authenticated
-    const session = await getServerSession(req, res, authOptions);
-    if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    // Verify caller: either via internal secret or user session
+    const internalSecret = process.env.NEXTAUTH_SECRET || 'teamlane-internal-secret';
+    const isInternalCall = req.headers['x-internal-secret'] === internalSecret;
+
+    if (!isInternalCall) {
+      const session = await getServerSession(req, res, authOptions);
+      if (!session) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
     }
 
     // Initialize socket server if not already initialized

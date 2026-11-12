@@ -7,7 +7,9 @@ export async function middleware(request: NextRequest) {
   const isAuth = !!token;
   const { pathname, searchParams } = request.nextUrl;
   const signinBase = process.env.NEXT_PUBLIC_SIGNIN_URL || 'https://signin.grafene.in';
-  const originHost = `https://${request.headers.get('host') || 'teamlane.grafene.in'}`;
+  const host = request.headers.get('host') || 'teamlane.grafene.in';
+  const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http:' : (request.nextUrl.protocol || 'https:');
+  const originHost = `${protocol}//${host}`;
 
   // Skip static files and Next.js internals
   if (

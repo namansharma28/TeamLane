@@ -9,6 +9,7 @@ import { NoteModal } from "@/components/NoteModal";
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingPage } from '@/components/ui/loading-page';
 import { FileText, Search } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 interface Note {
   _id: string;
@@ -93,10 +94,10 @@ export default function NotesPage() {
       setSelectedNote(null);
       // Then refresh notes
       await fetchNotes();
+      toast.success('Note deleted successfully');
     } catch (error) {
       console.error('Error:', error);
-      // You might want to show this error to the user
-      alert(error instanceof Error ? error.message : 'Failed to delete note');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete note');
     }
   };
 

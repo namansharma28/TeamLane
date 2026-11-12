@@ -80,6 +80,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       teamId: team._id.toString(),
+      id: team._id.toString(),
+      _id: team._id.toString(),
       teamName: team.name,
       message: `Successfully joined ${team.name}`
     });
